@@ -43,16 +43,20 @@ _Avoid_: Loss, X
 ## Scoring
 
 **Scoring model**:
-A named rule for turning a share into a daily score and for ranking players on a puzzle. Candidate models are compared against real history once; the bot then runs with the single model chosen from that comparison.
+A named rule for turning a share into a daily score and for ranking players on a puzzle. Candidate models were compared against real history once; the bot runs with the single model chosen from that comparison, and it never switches.
 _Avoid_: Algorithm, formula, ruleset
 
 **Daily score**:
 The number a scoring model gives one player's share for one puzzle.
 _Avoid_: Points, rating
 
-**Order bonus**:
-Extra daily score for each pair of solved categories where the harder one was solved first.
-_Avoid_: Speed bonus, streak
+**Position bonus**:
+Extra daily score for each category solved earlier than its natural place (yellow first, green second, blue third, purple fourth), worth more the harder the category. Solving purple first earns the most.
+_Avoid_: Order bonus, speed bonus, streak
+
+**Clean game bonus**:
+Extra daily score for a puzzle solved with no mistakes at all, large enough that a clean game always outscores any game with a mistake.
+_Avoid_: Perfect bonus, flawless bonus
 
 **Winner**:
 The player (or players) ranked first on a puzzle at the moment a share is processed. It can change as more shares arrive.
