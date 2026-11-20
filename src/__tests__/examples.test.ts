@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { formatExample, pickExamples } from '../analysis/examples';
 import { groupByPuzzle, type HistoryRecord } from '../analysis/history';
 import { DEFAULT_CONFIG } from '../scoring/config';
-import { modelB, modelD } from '../scoring/models';
+import { modelB, modelD, modelQ } from '../scoring/models';
 
 const L: Record<string, string> = { '🟨': 'Y', '🟩': 'G', '🟦': 'B', '🟪': 'P' };
 const PERFECT = ['🟨🟨🟨🟨', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'];
@@ -59,5 +59,35 @@ describe('formatExample', () => {
     const text = formatExample(pickExamples(groups, modelB, DEFAULT_CONFIG, 1).clearWinner[0]!, modelB);
     expect(text).not.toContain('score');
     expect(text).toContain('solved 4');
+  });
+});
+
+describe('pickExamples: only puzzles where someone solved a given category first', () => {
+  const PURPLE_FIRST = ['🟪🟪🟪🟪', '🟦🟦🟦🟦', '🟩🟩🟩🟩', '🟨🟨🟨🟨'];
+  const BLUE_FIRST = ['🟦🟦🟦🟦', '🟪🟪🟪🟪', '🟩🟩🟩🟩', '🟨🟨🟨🟨'];
+  const g = groupByPuzzle([
+    rec('aaaaaaaa', 10, PERFECT), rec('bbbbbbbb', 10, ONE_MISTAKE), // nobody purple-first
+    rec('aaaaaaaa', 11, PURPLE_FIRST), rec('bbbbbbbb', 11, PERFECT), // someone purple-first
+    rec('aaaaaaaa', 12, BLUE_FIRST), rec('bbbbbbbb', 12, PERFECT), // blue-first only
+  ]);
+  const numbers = (ex: ReturnType<typeof pickExamples>) =>
+    [...ex.clearWinner, ...ex.tie, ...ex.allTied].map((e) => e.puzzleNumber).sort();
+
+  test('keeps only puzzles where at least one player solved that category first', () => {
+    expect(numbers(pickExamples(g, modelQ, DEFAULT_CONFIG, 5, { solvedFirst: 'P' }))).toEqual([11]);
+    expect(numbers(pickExamples(g, modelQ, DEFAULT_CONFIG, 5, { solvedFirst: 'B' }))).toEqual([12]);
+  });
+
+  test('without the option every multi-player puzzle is eligible', () => {
+    expect(numbers(pickExamples(g, modelQ, DEFAULT_CONFIG, 5))).toEqual([10, 11, 12]);
+  });
+
+  test('shows all players in a matching puzzle, not only the ones who went first', () => {
+    const [ex] = pickExamples(g, modelQ, DEFAULT_CONFIG, 5, { solvedFirst: 'P' }).clearWinner;
+    expect(ex!.players).toHaveLength(2);
+  });
+
+  test('a category nobody solved first yields no examples', () => {
+    expect(numbers(pickExamples(g, modelQ, DEFAULT_CONFIG, 5, { solvedFirst: 'G' }))).toEqual([]);
   });
 });
