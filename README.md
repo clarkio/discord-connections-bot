@@ -12,7 +12,7 @@ Phase 1 of 2: choose the scoring model from real history. The live bot comes aft
 
 - `src/connections/parser.ts`: turns a shared result into guesses, mistakes, rainbow guesses and solve order.
   Returns `null` for non-shares and `invalid` for impossible shares (the bot will react with ❌).
-- `src/scoring/`: two candidate models, **B** (ranked tuple) and **D** (weighted points).
+- `src/scoring/`: three candidate models: **B** (ranked tuple), **D** (weighted points with a bonus per harder-before-easier pair) and **P** (weighted points with a bonus for solving a category ahead of its natural position: purple 1st earns most).
   Every weight is in `src/scoring/config.ts`.
 - `src/analysis/` and `scripts/`: export a channel's history, then compare the models.
 
@@ -30,7 +30,7 @@ The analysis reports, per model and per sweep setting, over puzzles with two or 
 rate (primary), average winner-group size, average margin between first and second (model D only), and the
 share of puzzles where everyone tied.
 It also prints example puzzles for each outcome (clear winner, tie, everyone tied). Use
-`--model=B|D`, `--order-bonus=`, `--rainbow-penalty=` and `--examples=N` to choose what the examples use.
+`--model=B|D|P`, `--order-bonus=`, `--position-bonus=`, `--rainbow-penalty=` and `--examples=N` to choose what the examples use.
 
 ## Development
 

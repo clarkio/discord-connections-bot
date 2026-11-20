@@ -63,7 +63,7 @@ export function pickExamples(
 export function formatExample(ex: Example, model: ScoringModel): string {
   const lines = ex.players.map((p) => {
     const result =
-      model.id === 'D'
+      model.scored
         ? `score ${p.key[0]}`
         : `solved ${p.key[0]}, mistakes ${-p.key[1]!}, order ${p.key[2]}`;
     return `  ${p.winner ? '🏆' : '  '} ${p.playerId.slice(0, 8)}  ${result.padEnd(32)} ${p.rows}`;

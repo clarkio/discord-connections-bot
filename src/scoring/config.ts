@@ -10,6 +10,8 @@ export interface ScoringConfig {
   rainbowPenalty: number;
   /** Model D: points gained per pair of solved categories where the harder was solved first. */
   orderBonusPerPair: number;
+  /** Model P: points gained per place a category was solved ahead of its natural position. */
+  positionBonusPerStep: number;
   /** Model B: how much of a mistake a rainbow guess counts as. */
   rainbowMistakeWeight: number;
   /** Model B: whether hardest-first solve order breaks otherwise-equal results. */
@@ -21,6 +23,7 @@ export const DEFAULT_CONFIG: ScoringConfig = {
   mistakePenalty: 1,
   rainbowPenalty: 0.5,
   orderBonusPerPair: 0.5,
+  positionBonusPerStep: 0.25,
   rainbowMistakeWeight: 0.5,
   orderTiebreak: true,
 };

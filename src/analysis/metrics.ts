@@ -36,7 +36,7 @@ export function analyze(groups: Map<number, Entry[]>, model: ScoringModel, cfg: 
     puzzles,
     singleWinnerRate: rate(single),
     avgWinnerGroupSize: rate(groupSize),
-    avgMargin: model.id === 'D' ? rate(marginSum) : null,
+    avgMargin: model.scored ? rate(marginSum) : null,
     allTiedRate: rate(allTied),
   };
 }
@@ -47,12 +47,23 @@ export interface SweepRow {
 }
 
 export const ORDER_BONUS_GRID = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1];
+export const POSITION_BONUS_GRID = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1];
 export const RAINBOW_PENALTY_GRID = [0, 0.5, 1];
 
 /** Vary the tunable parameters of a model over a small grid. */
 export function sweep(groups: Map<number, Entry[]>, model: ScoringModel): SweepRow[] {
   const rows: SweepRow[] = [];
-  if (model.id === 'D') {
+  if (model.id === 'P') {
+    for (const positionBonusPerStep of POSITION_BONUS_GRID) {
+      for (const rainbowPenalty of RAINBOW_PENALTY_GRID) {
+        const cfg = { ...DEFAULT_CONFIG, positionBonusPerStep, rainbowPenalty };
+        rows.push({
+          label: `positionBonus=${positionBonusPerStep} rainbowPenalty=${rainbowPenalty}`,
+          metrics: analyze(groups, model, cfg),
+        });
+      }
+    }
+  } else if (model.id === 'D') {
     for (const orderBonusPerPair of ORDER_BONUS_GRID) {
       for (const rainbowPenalty of RAINBOW_PENALTY_GRID) {
         const cfg = { ...DEFAULT_CONFIG, orderBonusPerPair, rainbowPenalty };
