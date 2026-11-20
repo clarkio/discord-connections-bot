@@ -29,7 +29,7 @@ salted player hashes, puzzle numbers and guess rows. Set `HASH_SALT` to keep has
 The analysis reports, per model and per sweep setting, over puzzles with two or more players: single-winner
 rate (primary), average winner-group size, average margin between first and second (model D only), and the
 share of puzzles where everyone tied.
-It also prints example puzzles for each outcome (clear winner, tie, everyone tied). Use
+It also prints example puzzles for each outcome (with a line-by-line score breakdown for the scored models) (clear winner, tie, everyone tied). Use
 `--model=B,D,P,Q|all` (default D,P,Q), `--order-bonus=`, `--position-bonus=`, `--position-unit=`, `--rainbow-penalty=` and `--examples=N` and `--first=Y|G|B|P` (only puzzles where someone solved that category first) to choose what the examples use.
 
 ## Development

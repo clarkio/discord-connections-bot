@@ -1,6 +1,6 @@
 import type { Color } from '../connections/types';
 import type { ScoringConfig } from '../scoring/config';
-import type { ScoringModel } from '../scoring/models';
+import type { ScoreComponent, ScoringModel } from '../scoring/models';
 import { determineWinners, type Entry } from '../scoring/winners';
 
 const SQUARE: Record<Color, string> = { Y: '🟨', G: '🟩', B: '🟦', P: '🟪' };
@@ -10,6 +10,8 @@ export interface ExamplePlayer {
   rows: string;
   key: number[];
   winner: boolean;
+  /** How a scored model reached the score; absent for models with no numeric score. */
+  breakdown?: ScoreComponent[];
 }
 
 export interface Example {
@@ -57,11 +59,14 @@ export function pickExamples(
         rows: r.share.guesses.map((g) => g.colors.map((c) => SQUARE[c]).join('')).join(' '),
         key: r.key,
         winner: winners.includes(r.playerId),
+        breakdown: model.breakdown?.(r.share, cfg),
       })),
     });
   }
   return out;
 }
+
+const signed = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
 
 export function formatExample(ex: Example, model: ScoringModel): string {
   const lines = ex.players.map((p) => {
@@ -69,7 +74,9 @@ export function formatExample(ex: Example, model: ScoringModel): string {
       model.scored
         ? `score ${p.key[0]}`
         : `solved ${p.key[0]}, mistakes ${-p.key[1]!}, order ${p.key[2]}`;
-    return `  ${p.winner ? '🏆' : '  '} ${p.playerId.slice(0, 8)}  ${result.padEnd(32)} ${p.rows}`;
+    const head = `  ${p.winner ? '🏆' : '  '} ${p.playerId.slice(0, 8)}  ${result.padEnd(32)} ${p.rows}`;
+    const parts = (p.breakdown ?? []).map((c) => `       ${c.label} ${signed(c.points)} (${c.detail})`);
+    return [head, ...parts].join('\n');
   });
   return [`Puzzle #${ex.puzzleNumber}`, ...lines].join('\n');
 }

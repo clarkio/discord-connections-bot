@@ -1,12 +1,21 @@
 import { DIFFICULTY, type Color, type Share } from '../connections/types';
 import type { ScoringConfig } from './config';
 
+/** One line of a score explanation. The points of all components add up to the daily score. */
+export interface ScoreComponent {
+  label: 'categories' | 'mistakes' | 'rainbows' | 'order bonus' | 'position bonus';
+  points: number;
+  detail: string;
+}
+
 export interface ScoringModel {
   id: 'B' | 'D' | 'P' | 'Q';
   /** True when the first key component is a numeric daily score (so margins and totals make sense). */
   scored: boolean;
   /** Higher keys rank better; compare with compareKeys. */
   rankKey(share: Share, cfg: ScoringConfig): number[];
+  /** Explains a scored model's daily score; absent for models with no numeric score. */
+  breakdown?(share: Share, cfg: ScoringConfig): ScoreComponent[];
 }
 
 /** Number of pairs of solved categories where the harder one was solved first. */
@@ -109,3 +118,85 @@ export function resolveModels(value?: string): ScoringModel[] {
     return model;
   });
 }
+
+const ORDINAL = ['1st', '2nd', '3rd', '4th'];
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** Pairs of solved categories where the harder was solved first, as "P before Y". */
+function pairList(solvedOrder: Color[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < solvedOrder.length; i++) {
+    for (let j = i + 1; j < solvedOrder.length; j++) {
+      if (DIFFICULTY[solvedOrder[i]!] > DIFFICULTY[solvedOrder[j]!]) out.push(`${solvedOrder[i]} before ${solvedOrder[j]}`);
+    }
+  }
+  return out;
+}
+
+/** The components every scored model shares: category points, mistakes and rainbows. */
+function baseComponents(share: Share, cfg: ScoringConfig): ScoreComponent[] {
+  const parts: ScoreComponent[] = [
+    {
+      label: 'categories',
+      points: share.solvedOrder.reduce((sum, c) => sum + cfg.categoryWeights[c], 0),
+      detail: share.solvedOrder.map((c) => `${c}+${cfg.categoryWeights[c]}`).join(' ') || 'none solved',
+    },
+  ];
+  if (share.mistakes > 0) {
+    parts.push({ label: 'mistakes', points: -share.mistakes * cfg.mistakePenalty, detail: `${share.mistakes} × -${cfg.mistakePenalty}` });
+  }
+  if (share.rainbows > 0) {
+    parts.push({ label: 'rainbows', points: -share.rainbows * cfg.rainbowPenalty, detail: `${share.rainbows} × -${cfg.rainbowPenalty}` });
+  }
+  return parts;
+}
+
+/** Places each solved category moved up, with the steps it earned (zero-step categories omitted). */
+function stepsByCategory(solvedOrder: Color[]): { color: Color; place: string; steps: number }[] {
+  return solvedOrder
+    .map((color, i) => ({ color, place: ORDINAL[i]!, steps: Math.max(0, DIFFICULTY[color] - (i + 1)) }))
+    .filter((x) => x.steps > 0);
+}
+
+modelD.breakdown = (share, cfg) => {
+  const parts = baseComponents(share, cfg);
+  const pairs = pairList(share.solvedOrder);
+  if (pairs.length > 0) {
+    parts.push({
+      label: 'order bonus',
+      points: pairs.length * cfg.orderBonusPerPair,
+      detail: `${plural(pairs.length, 'pair')} × ${cfg.orderBonusPerPair} (${pairs.join(', ')})`,
+    });
+  }
+  return parts;
+};
+
+modelP.breakdown = (share, cfg) => {
+  const parts = baseComponents(share, cfg);
+  const moved = stepsByCategory(share.solvedOrder);
+  const steps = moved.reduce((t, m) => t + m.steps, 0);
+  if (steps > 0) {
+    parts.push({
+      label: 'position bonus',
+      points: steps * cfg.positionBonusPerStep,
+      detail: `${moved.map((m) => `${m.color} solved ${m.place}: ${plural(m.steps, 'step')}`).join('; ')}; ${plural(steps, 'step')} × ${cfg.positionBonusPerStep}`,
+    });
+  }
+  return parts;
+};
+
+modelQ.breakdown = (share, cfg) => {
+  const parts = baseComponents(share, cfg);
+  const moved = stepsByCategory(share.solvedOrder);
+  const units = moved.reduce((t, m) => t + m.steps * cfg.positionStepWeights[m.color], 0);
+  if (units > 0) {
+    parts.push({
+      label: 'position bonus',
+      points: units * cfg.weightedPositionBonusPerUnit,
+      detail: `${moved
+        .map((m) => `${m.color} solved ${m.place}: ${plural(m.steps, 'step')} × ${cfg.positionStepWeights[m.color]} = ${m.steps * cfg.positionStepWeights[m.color]}`)
+        .join('; ')}; ${plural(units, 'unit')} × ${cfg.weightedPositionBonusPerUnit}`,
+    });
+  }
+  return parts;
+};
