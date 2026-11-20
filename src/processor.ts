@@ -64,20 +64,7 @@ export async function processShare(
   );
   if (!stored) return { status: 'duplicate' };
 
-  // Ignored players are recorded but never counted toward winners or ties.
-  const entries = await db.getPuzzleEntries(share.puzzleNumber);
-  const eligible = entries.filter((e) => !ignoredIds.has(e.discordId));
-  const { winners: winnerIds, isTie } = determineWinners(
-    eligible.map((e) => ({ playerId: e.discordId, share: toShare(e) })),
-    PRODUCTION_MODEL,
-    PRODUCTION_CONFIG,
-  );
-
-  const won = new Set(winnerIds);
-  await db.setOutcomes(
-    share.puzzleNumber,
-    entries.map((e) => ({ discordId: e.discordId, isWin: won.has(e.discordId) && !isTie, isTie: won.has(e.discordId) && isTie })),
-  );
+  const { eligible, won, isTie } = await refreshOutcomes(share.puzzleNumber, db, ignoredIds);
 
   return {
     status: 'saved',
@@ -87,6 +74,31 @@ export async function processShare(
     isTie,
     announce: won.has(author.id),
   };
+}
+
+/**
+ * Work out who is winning a puzzle from everything stored for it, and record each
+ * player's win or tie flag. Ignored players are stored but never count toward winners or ties.
+ */
+export async function refreshOutcomes(
+  puzzleNumber: number,
+  db: ConnectionsDatabase,
+  ignoredIds: Set<string>,
+): Promise<{ eligible: PuzzleEntry[]; won: Set<string>; isTie: boolean }> {
+  const entries = await db.getPuzzleEntries(puzzleNumber);
+  const eligible = entries.filter((e) => !ignoredIds.has(e.discordId));
+  const { winners: winnerIds, isTie } = determineWinners(
+    eligible.map((e) => ({ playerId: e.discordId, share: toShare(e) })),
+    PRODUCTION_MODEL,
+    PRODUCTION_CONFIG,
+  );
+
+  const won = new Set(winnerIds);
+  await db.setOutcomes(
+    puzzleNumber,
+    entries.map((e) => ({ discordId: e.discordId, isWin: won.has(e.discordId) && !isTie, isTie: won.has(e.discordId) && isTie })),
+  );
+  return { eligible, won, isTie };
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;

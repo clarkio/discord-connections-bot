@@ -42,6 +42,19 @@ Change the schema in `src/db/schema.ts` and run `bun run db:generate` to produce
   Every weight is in `src/scoring/config.ts`.
 - `src/analysis/` and `scripts/`: export a channel's history, then compare the models.
 
+## Loading past results into the database
+
+```bash
+BOT_TOKEN=... TARGET_CHANNEL_ID=... TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... bun run history:backfill          # dry run
+BOT_TOKEN=... TARGET_CHANNEL_ID=... TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... bun run history:backfill --apply  # write
+```
+
+It reads the channel history and loads each share with the player's real Discord id and name (the analysis
+export above hashes them, so it can't be used for this). It scores shares exactly like the live bot, sets each
+puzzle's win and tie flags, and announces nothing. The first share per player and puzzle counts, results already in
+the database are never overwritten, and it is safe to run again or while the bot is running. Set `IGNORED_USER_IDS`
+the same as on the bot.
+
 ## Choosing a scoring model
 
 ```bash

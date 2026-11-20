@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "history:fetch": "bun run scripts/fetch-history.ts",
-    "history:analyze": "bun run scripts/analyze.ts"
+    "history:analyze": "bun run scripts/analyze.ts",
+    "history:backfill": "bun run scripts/backfill-history.ts"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
