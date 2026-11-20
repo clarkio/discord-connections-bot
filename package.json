@@ -4,8 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "start": "bun run src/bot.ts",
+    "dev": "bun --watch src/bot.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
     "history:fetch": "bun run scripts/fetch-history.ts",
     "history:analyze": "bun run scripts/analyze.ts"
   },

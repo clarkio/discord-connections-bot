@@ -4,11 +4,37 @@ A bot for Discord to track shared player results of the game Connections by the 
 Domain language lives in [CONTEXT.md](CONTEXT.md).
 
 Stack matches [discord-wordle-bot](https://github.com/clarkio/discord-wordle-bot): Bun, TypeScript,
-discord.js 14, and (for the live bot, not yet built) Turso with Drizzle on Railway.
+discord.js 14, and Turso with Drizzle, deployed on Railway.
 
 ## Status
 
-Phase 1 of 2: choose the scoring model from real history. The live bot comes after.
+Phase 1 (done): chose the scoring model from real channel history. Phase 2 (this): the live bot.
+
+## The live bot
+
+Reads shares posted in `TARGET_CHANNEL_ID`, scores each one, stores it in Turso, and announces who is
+currently winning that puzzle whenever the sharer is among the winners (a tie is announced too).
+
+- ✅ on a counted share, ❌ on a message that looks like a share but is impossible, nothing for a duplicate
+  (the first share per player and puzzle counts; a first-ever share for an old puzzle is accepted).
+- Scoring is fixed to model **R**, with the settings in `src/scoring/production.ts`.
+- Commands: `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
+  data, results are recorded either way), `!results [puzzle]` (your result plus lifetime totals).
+- `IGNORED_USER_IDS` players are recorded but never count toward winners or ties. `USER_TAGGING_ENABLED=true`
+  mentions winners instead of printing names.
+
+```bash
+cp .env.example .env   # fill in BOT_TOKEN and TARGET_CHANNEL_ID
+bun install --frozen-lockfile
+bun run start          # migrations run on boot
+```
+
+On Railway set the variables in `.env.example` and use `bun run start` as the start command. Run a single
+instance only, or each share would be processed twice. The bot needs the Message Content intent and permission
+to read messages, add reactions and send messages in the channel.
+
+Storage keeps the raw share (`results`) separate from its derived score and outcome (`scores`).
+Change the schema in `src/db/schema.ts` and run `bun run db:generate` to produce a migration.
 
 - `src/connections/parser.ts`: turns a shared result into guesses, mistakes, rainbow guesses and solve order.
   Returns `null` for non-shares and `invalid` for impossible shares (the bot will react with ❌).
