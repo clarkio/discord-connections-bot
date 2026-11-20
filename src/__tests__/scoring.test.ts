@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { parseShare } from '../connections/parser';
 import type { Share } from '../connections/types';
 import { DEFAULT_CONFIG } from '../scoring/config';
-import { compareKeys, modelB, modelD, orderPairs } from '../scoring/models';
+import { compareKeys, modelB, modelD, modelP, orderPairs, positionSteps } from '../scoring/models';
 import { determineWinners } from '../scoring/winners';
 
 function make(rows: string[]): Share {
@@ -122,5 +122,74 @@ describe('determineWinners', () => {
   test('returns the full ranking, best first', () => {
     const r = determineWinners(entries(make([MISTAKE, Y, G, B, P]), make([Y, G, B, P])), modelD, DEFAULT_CONFIG);
     expect(r.ranking?.map((e) => e.playerId)).toEqual(['p2', 'p1']);
+  });
+});
+
+describe('positionSteps: reward for solving a category ahead of its natural place', () => {
+  test('natural order earns nothing', () => {
+    expect(positionSteps(['Y', 'G', 'B', 'P'])).toBe(0);
+  });
+  test('purple earns 3, 2, 1, 0 steps for being solved 1st, 2nd, 3rd, 4th', () => {
+    expect(positionSteps(['P'])).toBe(3);
+    expect(positionSteps(['Y', 'P'])).toBe(2);
+    expect(positionSteps(['Y', 'G', 'P'])).toBe(1);
+    expect(positionSteps(['Y', 'G', 'B', 'P'])).toBe(0);
+  });
+  test('blue earns 2 and 1 steps for 1st and 2nd, and nothing for 3rd or 4th', () => {
+    expect(positionSteps(['B'])).toBe(2);
+    expect(positionSteps(['Y', 'B'])).toBe(1);
+    expect(positionSteps(['Y', 'G', 'B'])).toBe(0);
+    expect(positionSteps(['Y', 'G', 'P', 'B'])).toBe(1); // purple 3rd = 1, blue 4th = 0
+  });
+  test('green earns 1 step only for being solved first; yellow never earns any', () => {
+    expect(positionSteps(['G'])).toBe(1);
+    expect(positionSteps(['Y', 'G'])).toBe(0);
+    expect(positionSteps(['Y'])).toBe(0);
+    expect(positionSteps(['G', 'Y'])).toBe(1);
+  });
+  test('combines categories', () => {
+    expect(positionSteps(['P', 'B', 'G', 'Y'])).toBe(4); // 3 + 1
+    expect(positionSteps(['B', 'P', 'G', 'Y'])).toBe(4); // 2 + 2
+    expect(positionSteps(['P', 'Y', 'G', 'B'])).toBe(3);
+  });
+  test('partial solves count the positions that were actually reached', () => {
+    expect(positionSteps([])).toBe(0);
+  });
+});
+
+describe('model P: weighted points with a position bonus', () => {
+  const scoreP = (s: Share, cfg = DEFAULT_CONFIG) => modelP.rankKey(s, cfg)[0]!;
+  const cfg25 = { ...DEFAULT_CONFIG, positionBonusPerStep: 0.25 };
+
+  test('natural order is the plain 10-point base', () => {
+    expect(scoreP(make([Y, G, B, P]), cfg25)).toBe(10);
+  });
+  test('purple first is worth more than purple second, third or fourth', () => {
+    const first = scoreP(make([P, Y, G, B]), cfg25);
+    const second = scoreP(make([Y, P, G, B]), cfg25);
+    const third = scoreP(make([Y, G, P, B]), cfg25);
+    const fourth = scoreP(make([Y, G, B, P]), cfg25);
+    expect(first).toBeGreaterThan(second);
+    expect(second).toBeGreaterThan(third);
+    expect(third).toBeGreaterThan(fourth);
+  });
+  test('blue first or second beats blue third or fourth, which score the same', () => {
+    const b1 = scoreP(make([B, Y, G, P]), cfg25);
+    const b2 = scoreP(make([Y, B, G, P]), cfg25);
+    const b3 = scoreP(make([Y, G, B, P]), cfg25);
+    expect(b1).toBeGreaterThan(b2);
+    expect(b2).toBeGreaterThan(b3);
+    expect(scoreP(make([Y, G, P, B]), cfg25) - scoreP(make([Y, G, B, P]), cfg25)).toBe(0.25); // purple moved up; blue 4th = blue 3rd
+  });
+  test('adds steps × per-step weight to the base, minus mistakes and rainbows as in model D', () => {
+    expect(scoreP(make([P, B, G, Y]), cfg25)).toBe(11); // 10 + 4 steps × 0.25
+    expect(scoreP(make([MISTAKE, RAINBOW, P, B, G, Y]), cfg25)).toBe(9.5); // 10 − 1 − 0.5 + 1
+  });
+  test('a failed game still earns the bonus for what it solved', () => {
+    expect(scoreP(make([P, MISTAKE, MISTAKE, MISTAKE, MISTAKE]), cfg25)).toBe(4 - 4 + 0.75);
+  });
+  test('the per-step weight is configurable', () => {
+    expect(scoreP(make([P, B, G, Y]), { ...DEFAULT_CONFIG, positionBonusPerStep: 0 })).toBe(10);
+    expect(scoreP(make([P, B, G, Y]), { ...DEFAULT_CONFIG, positionBonusPerStep: 1 })).toBe(14);
   });
 });

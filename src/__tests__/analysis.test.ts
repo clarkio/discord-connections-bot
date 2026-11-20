@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { buildRecords, groupByPuzzle, type HistoryRecord } from '../analysis/history';
-import { ORDER_BONUS_GRID, RAINBOW_PENALTY_GRID, analyze, sweep } from '../analysis/metrics';
+import { ORDER_BONUS_GRID, POSITION_BONUS_GRID, RAINBOW_PENALTY_GRID, analyze, sweep } from '../analysis/metrics';
 import { DEFAULT_CONFIG } from '../scoring/config';
-import { modelB, modelD } from '../scoring/models';
+import { modelB, modelD, modelP } from '../scoring/models';
 
 const PERFECT = ['🟨🟨🟨🟨', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'];
 const ONE_MISTAKE = ['🟨🟨🟨🟩', ...PERFECT];
@@ -100,5 +100,20 @@ describe('sweep', () => {
 
   test('the order-bonus grid includes values finer than 0.25 and ones that do not line up with the penalties', () => {
     for (const v of [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1]) expect(ORDER_BONUS_GRID).toContain(v);
+  });
+});
+
+describe('model P in the analysis', () => {
+  const groups = groupByPuzzle([rec('a', 1, PERFECT), rec('b', 1, ONE_MISTAKE)]);
+
+  test('reports a margin, because model P has a numeric score', () => {
+    expect(analyze(groups, modelP, DEFAULT_CONFIG).avgMargin).toBe(1);
+  });
+
+  test('sweeps the per-step weight against the rainbow penalty', () => {
+    const rows = sweep(groups, modelP);
+    expect(rows.length).toBe(POSITION_BONUS_GRID.length * RAINBOW_PENALTY_GRID.length);
+    expect(rows[0]!.label).toContain('positionBonus');
+    for (const v of [0, 0.1, 0.2, 0.25, 0.3, 0.5]) expect(POSITION_BONUS_GRID).toContain(v);
   });
 });
