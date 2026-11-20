@@ -260,8 +260,8 @@ describe('model Q: weighted points with a difficulty-weighted position bonus', (
 describe('resolveModels: choosing models from a command-line value', () => {
   const ids = (v?: string) => resolveModels(v).map((m) => m.id);
 
-  test('defaults to the scored models D, P and Q', () => {
-    expect(ids(undefined)).toEqual(['D', 'P', 'Q']);
+  test('defaults to the scored models D, P, Q and R', () => {
+    expect(ids(undefined)).toEqual(['D', 'P', 'Q', 'R']);
   });
   test('accepts one model, case-insensitively', () => {
     expect(ids('p')).toEqual(['P']);
@@ -271,7 +271,7 @@ describe('resolveModels: choosing models from a command-line value', () => {
     expect(ids('Q, d')).toEqual(['Q', 'D']);
   });
   test('"all" means every model', () => {
-    expect(ids('all')).toEqual(['B', 'D', 'P', 'Q']);
+    expect(ids('all')).toEqual(['B', 'D', 'P', 'Q', 'R']);
   });
   test('an unknown model is rejected with a helpful message', () => {
     expect(() => resolveModels('X')).toThrow(/unknown model "X"/i);
