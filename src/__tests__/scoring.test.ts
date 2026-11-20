@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { parseShare } from '../connections/parser';
 import type { Color, Share } from '../connections/types';
 import { DEFAULT_CONFIG } from '../scoring/config';
-import { compareKeys, modelB, modelD, modelP, modelQ, orderPairs, positionSteps, weightedPositionSteps } from '../scoring/models';
+import { compareKeys, modelB, modelD, modelP, modelQ, orderPairs, positionSteps, resolveModels, weightedPositionSteps } from '../scoring/models';
 import { determineWinners } from '../scoring/winners';
 
 function make(rows: string[]): Share {
@@ -254,5 +254,26 @@ describe('model Q: weighted points with a difficulty-weighted position bonus', (
   test('the per-category step weights are configurable', () => {
     const cfg = { ...DEFAULT_CONFIG, positionStepWeights: { Y: 0, G: 1, B: 2, P: 3 } };
     expect(scoreQ(make([P, B, G, Y]), cfg)).toBe(10 + 11 * 0.25); // P 3×3 + B 1×2
+  });
+});
+
+describe('resolveModels: choosing models from a command-line value', () => {
+  const ids = (v?: string) => resolveModels(v).map((m) => m.id);
+
+  test('defaults to the scored models D, P and Q', () => {
+    expect(ids(undefined)).toEqual(['D', 'P', 'Q']);
+  });
+  test('accepts one model, case-insensitively', () => {
+    expect(ids('p')).toEqual(['P']);
+  });
+  test('accepts a comma-separated list in the order given', () => {
+    expect(ids('B,Q')).toEqual(['B', 'Q']);
+    expect(ids('Q, d')).toEqual(['Q', 'D']);
+  });
+  test('"all" means every model', () => {
+    expect(ids('all')).toEqual(['B', 'D', 'P', 'Q']);
+  });
+  test('an unknown model is rejected with a helpful message', () => {
+    expect(() => resolveModels('X')).toThrow(/unknown model "X"/i);
   });
 });
