@@ -58,7 +58,7 @@ export const RAINBOW_PENALTY_GRID = [0, 0.5, 1];
 /** Vary the tunable parameters of a model over a small grid. */
 export function sweep(groups: Map<number, Entry[]>, model: ScoringModel): SweepRow[] {
   const rows: SweepRow[] = [];
-  if (model.id === 'Q') {
+  if (model.id === 'Q' || model.id === 'R') {
     for (const weightedPositionBonusPerUnit of WEIGHTED_UNIT_GRID) {
       for (const scheme of STEP_WEIGHT_SCHEMES) {
         for (const rainbowPenalty of RAINBOW_PENALTY_GRID) {

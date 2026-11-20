@@ -63,9 +63,9 @@ describe('the problem: without a guard, a mistake can beat a clean game', () => 
 describe('model R: a clean game always beats any game with a mistake', () => {
   const { clean, mistaken } = allShares();
 
-  test('the enumeration covers every clean solve order and many mistaken games', () => {
+  test('the enumeration covers every clean solve order and every mistaken game', () => {
     expect(clean).toHaveLength(24);
-    expect(mistaken.length).toBeGreaterThan(500);
+    expect(mistaken).toHaveLength(421); // 216 solved-with-mistakes + 205 failed
   });
 
   test.each(configs)('worst clean game beats best mistaken game: %s', (_label, cfg) => {

@@ -12,7 +12,7 @@ Phase 1 of 2: choose the scoring model from real history. The live bot comes aft
 
 - `src/connections/parser.ts`: turns a shared result into guesses, mistakes, rainbow guesses and solve order.
   Returns `null` for non-shares and `invalid` for impossible shares (the bot will react with ❌).
-- `src/scoring/`: three candidate models: **B** (ranked tuple), **D** (weighted points with a bonus per harder-before-easier pair) and **P** (weighted points with a bonus for solving a category ahead of its natural position: purple 1st earns most) and **Q** (P with each place worth more units for harder categories, in whole multiples of 0.25, so it separates more solve orders).
+- `src/scoring/`: three candidate models: **B** (ranked tuple), **D** (weighted points with a bonus per harder-before-easier pair) and **P** (weighted points with a bonus for solving a category ahead of its natural position: purple 1st earns most) and **Q** (P with each place worth more units for harder categories, in whole multiples of 0.25, so it separates more solve orders) and **R** (Q plus a whole-number bonus for a game with no mistakes, sized so a clean game always beats any game with a mistake).
   Every weight is in `src/scoring/config.ts`.
 - `src/analysis/` and `scripts/`: export a channel's history, then compare the models.
 
@@ -30,7 +30,7 @@ The analysis reports, per model and per sweep setting, over puzzles with two or 
 rate (primary), average winner-group size, average margin between first and second (model D only), and the
 share of puzzles where everyone tied.
 It also prints example puzzles for each outcome (with a line-by-line score breakdown for the scored models) (clear winner, tie, everyone tied). Use
-`--model=B,D,P,Q|all` (default D,P,Q), `--order-bonus=`, `--position-bonus=`, `--position-unit=`, `--rainbow-penalty=` and `--examples=N` and `--first=Y|G|B|P` (only puzzles where someone solved that category first) to choose what the examples use.
+`--model=B,D,P,Q,R|all` (default D,P,Q,R), `--order-bonus=`, `--position-bonus=`, `--position-unit=`, `--rainbow-penalty=` and `--examples=N` and `--first=Y|G|B|P` (only puzzles where someone solved that category first) to choose what the examples use.
 
 ## Development
 

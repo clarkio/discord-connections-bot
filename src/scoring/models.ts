@@ -3,13 +3,13 @@ import type { ScoringConfig } from './config';
 
 /** One line of a score explanation. The points of all components add up to the daily score. */
 export interface ScoreComponent {
-  label: 'categories' | 'mistakes' | 'rainbows' | 'order bonus' | 'position bonus';
+  label: 'categories' | 'mistakes' | 'rainbows' | 'order bonus' | 'position bonus' | 'clean game bonus';
   points: number;
   detail: string;
 }
 
 export interface ScoringModel {
-  id: 'B' | 'D' | 'P' | 'Q';
+  id: 'B' | 'D' | 'P' | 'Q' | 'R';
   /** True when the first key component is a numeric daily score (so margins and totals make sense). */
   scored: boolean;
   /** Higher keys rank better; compare with compareKeys. */
@@ -105,16 +105,54 @@ export const modelQ: ScoringModel = {
   },
 };
 
-export const ALL_MODELS: ScoringModel[] = [modelB, modelD, modelP, modelQ];
+const ALL_ORDERS: Color[][] = (() => {
+  const make = (pool: Color[]): Color[][] =>
+    pool.length === 0 ? [[]] : pool.flatMap((c) => make(pool.filter((x) => x !== c)).map((rest) => [c, ...rest]));
+  return make(['Y', 'G', 'B', 'P']);
+})();
 
-/** Pick models by id from a comma-separated list or "all". With no value, the scored models D, P and Q. */
+/** The largest model-Q position bonus any solve order can earn under this config. */
+export function maxPositionBonus(cfg: ScoringConfig): number {
+  return Math.max(...ALL_ORDERS.map((o) => weightedPositionSteps(o, cfg.positionStepWeights))) * cfg.weightedPositionBonusPerUnit;
+}
+
+/** The clean-game bonus in effect: the configured number, or the smallest whole number above the largest position bonus. */
+export function cleanGameBonusFor(cfg: ScoringConfig): number {
+  return cfg.cleanGameBonus === 'auto' ? Math.floor(maxPositionBonus(cfg)) + 1 : cfg.cleanGameBonus;
+}
+
+const isClean = (share: Share) => share.mistakes + share.rainbows === 0;
+
+/**
+ * Model R: model Q plus a whole-number bonus for a game with no mistakes, sized so
+ * a clean game always outscores any game with a mistake, whatever the solve order.
+ */
+export const modelR: ScoringModel = {
+  id: 'R',
+  scored: true,
+  rankKey(share, cfg) {
+    return [modelQ.rankKey(share, cfg)[0]! + (isClean(share) ? cleanGameBonusFor(cfg) : 0)];
+  },
+  breakdown(share, cfg) {
+    const parts = modelQ.breakdown!(share, cfg);
+    if (isClean(share)) {
+      const bonus = cleanGameBonusFor(cfg);
+      parts.push({ label: 'clean game bonus', points: bonus, detail: `no mistakes, so always ahead of any game with one (largest position bonus is ${maxPositionBonus(cfg)})` });
+    }
+    return parts;
+  },
+};
+
+export const ALL_MODELS: ScoringModel[] = [modelB, modelD, modelP, modelQ, modelR];
+
+/** Pick models by id from a comma-separated list or "all". With no value, the scored models D, P, Q and R. */
 export function resolveModels(value?: string): ScoringModel[] {
-  if (value === undefined) return [modelD, modelP, modelQ];
+  if (value === undefined) return [modelD, modelP, modelQ, modelR];
   if (value.trim().toLowerCase() === 'all') return ALL_MODELS;
   return value.split(',').map((raw) => {
     const id = raw.trim().toUpperCase();
     const model = ALL_MODELS.find((m) => m.id === id);
-    if (!model) throw new Error(`Unknown model "${raw.trim()}". Use B, D, P, Q or all.`);
+    if (!model) throw new Error(`Unknown model "${raw.trim()}". Use B, D, P, Q, R or all.`);
     return model;
   });
 }

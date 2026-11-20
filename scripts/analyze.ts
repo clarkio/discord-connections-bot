@@ -1,19 +1,19 @@
 /**
  * Compare scoring models B and D on an exported history file.
  *
- *   bun run history:analyze [path/to/history.json] [--model=B,D,P,Q|all] [--order-bonus=0.25]
+ *   bun run history:analyze [path/to/history.json] [--model=B,D,P,Q,R|all] [--order-bonus=0.25]
  *                           [--position-bonus=0.25] [--position-unit=0.25] [--rainbow-penalty=0.5] [--examples=2]
  *
  * --first=P limits the examples to puzzles where someone solved purple first.
  * The flags only affect the example puzzles shown after the first table
- * (defaults: models D, P and Q with the values in src/scoring/config.ts, 2 per kind).
+ * (defaults: models D, P, Q and R with the values in src/scoring/config.ts, 2 per kind).
  */
 import { readFileSync } from 'node:fs';
 import { groupByPuzzle, type HistoryRecord } from '../src/analysis/history';
 import { formatExample, pickExamples } from '../src/analysis/examples';
 import { analyze, sweep, type Metrics } from '../src/analysis/metrics';
 import { DEFAULT_CONFIG } from '../src/scoring/config';
-import { modelB, modelD, modelP, modelQ, resolveModels } from '../src/scoring/models';
+import { modelB, modelD, modelP, modelQ, modelR, resolveModels } from '../src/scoring/models';
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
@@ -36,6 +36,7 @@ const solvedFirst = firstFlag as 'Y' | 'G' | 'B' | 'P' | undefined;
 const { records } = JSON.parse(readFileSync(file, 'utf8')) as { records: HistoryRecord[] };
 const groups = groupByPuzzle(records);
 
+const GENTLE = { ...DEFAULT_CONFIG, positionStepWeights: { Y: 0, G: 1, B: 2, P: 3 } };
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const row = (label: string, m: Metrics) => ({
   config: label,
@@ -48,7 +49,7 @@ const row = (label: string, m: Metrics) => ({
 
 console.log(`${records.length} shares across ${groups.size} puzzles (metrics cover puzzles with 2+ players)\n`);
 console.log('Defaults (primary metric: single winner)');
-console.table([row('B ranked tuple', analyze(groups, modelB, DEFAULT_CONFIG)), row('D pair bonus 0.5', analyze(groups, modelD, DEFAULT_CONFIG)), row('D pair bonus 0.25', analyze(groups, modelD, { ...DEFAULT_CONFIG, orderBonusPerPair: 0.25 })), row('P position bonus 0.25', analyze(groups, modelP, DEFAULT_CONFIG)), row('Q weighted position 0.25', analyze(groups, modelQ, DEFAULT_CONFIG))]);
+console.table([row('B ranked tuple', analyze(groups, modelB, DEFAULT_CONFIG)), row('D pair bonus 0.5', analyze(groups, modelD, DEFAULT_CONFIG)), row('D pair bonus 0.25', analyze(groups, modelD, { ...DEFAULT_CONFIG, orderBonusPerPair: 0.25 })), row('P position bonus 0.25', analyze(groups, modelP, DEFAULT_CONFIG)), row('Q weighted position 0.25', analyze(groups, modelQ, DEFAULT_CONFIG)), row('Q, weights 0-1-2-3', analyze(groups, modelQ, GENTLE)), row('R clean-game guard', analyze(groups, modelR, DEFAULT_CONFIG)), row('R, weights 0-1-2-3', analyze(groups, modelR, GENTLE))]);
 
 for (const exampleModel of exampleModels) {
   const examples = pickExamples(groups, exampleModel, exampleCfg, perKind, { solvedFirst });
@@ -64,7 +65,7 @@ for (const exampleModel of exampleModels) {
   }
 }
 
-for (const model of [modelB, modelD, modelP, modelQ]) {
+for (const model of [modelB, modelD, modelP, modelQ, modelR]) {
   console.log(`\nSensitivity sweep: model ${model.id}`);
   console.table(sweep(groups, model).map((r) => row(r.label, r.metrics)));
 }
