@@ -8,10 +8,12 @@ const PERFECT = ['🟨🟨🟨🟨', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '�
 const ONE_MISTAKE = ['🟨🟨🟨🟩', ...PERFECT];
 const FAIL = ['🟨🟨🟩🟩', '🟨🟨🟦🟦', '🟪🟪🟩🟩', '🟦🟪🟦🟪'];
 
+// Exported records store rows as colour letters (e.g. 'YYYY'), not emoji.
+const LETTER: Record<string, string> = { '🟨': 'Y', '🟩': 'G', '🟦': 'B', '🟪': 'P' };
 const rec = (playerHash: string, puzzleNumber: number, rows: string[], postedAt = '2026-01-01T00:00:00Z'): HistoryRecord => ({
   playerHash,
   puzzleNumber,
-  rows,
+  rows: rows.map((r) => Array.from(r).map((c) => LETTER[c]).join('')),
   postedAt,
 });
 
