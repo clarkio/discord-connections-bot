@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { createClient, type Client } from '@libsql/client';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql';
@@ -17,6 +19,8 @@ export class TursoDatabase implements ConnectionsDatabase {
 
   /** Connect from TURSO_DATABASE_URL / TURSO_AUTH_TOKEN. */
   static connect(url: string, authToken?: string): TursoDatabase {
+    // A local file database needs its folder to exist.
+    if (url.startsWith('file:')) mkdirSync(dirname(url.slice('file:'.length)), { recursive: true });
     return new TursoDatabase(createClient({ url, authToken }));
   }
 
