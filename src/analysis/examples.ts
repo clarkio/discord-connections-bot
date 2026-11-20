@@ -29,17 +29,20 @@ export interface Examples {
 /**
  * Pick example puzzles of each outcome kind. Puzzles with more players come
  * first (they are more informative), then the most recent. One-player puzzles
- * are never examples.
+ * are never examples. With `solvedFirst`, only puzzles where at least one
+ * player solved that category first are used, and every player in them is shown.
  */
 export function pickExamples(
   groups: Map<number, Entry[]>,
   model: ScoringModel,
   cfg: ScoringConfig,
   perKind: number,
+  options: { solvedFirst?: Color } = {},
 ): Examples {
   const out: Examples = { clearWinner: [], tie: [], allTied: [] };
   const candidates = [...groups.entries()]
     .filter(([, entries]) => entries.length >= 2)
+    .filter(([, entries]) => !options.solvedFirst || entries.some((e) => e.share.solvedOrder[0] === options.solvedFirst))
     .sort(([na, a], [nb, b]) => b.length - a.length || nb - na);
 
   for (const [puzzleNumber, entries] of candidates) {

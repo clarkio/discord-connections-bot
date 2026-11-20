@@ -4,6 +4,7 @@
  *   bun run history:analyze [path/to/history.json] [--model=B,D,P,Q|all] [--order-bonus=0.25]
  *                           [--position-bonus=0.25] [--position-unit=0.25] [--rainbow-penalty=0.5] [--examples=2]
  *
+ * --first=P limits the examples to puzzles where someone solved purple first.
  * The flags only affect the example puzzles shown after the first table
  * (defaults: models D, P and Q with the values in src/scoring/config.ts, 2 per kind).
  */
@@ -26,6 +27,12 @@ const exampleCfg = {
   ...(flag('rainbow-penalty') !== undefined && { rainbowPenalty: Number(flag('rainbow-penalty')) }),
 };
 const perKind = Number(flag('examples') ?? 2);
+const firstFlag = flag('first')?.toUpperCase();
+if (firstFlag !== undefined && !['Y', 'G', 'B', 'P'].includes(firstFlag)) {
+  console.error(`--first must be Y, G, B or P (got "${flag('first')}").`);
+  process.exit(1);
+}
+const solvedFirst = firstFlag as 'Y' | 'G' | 'B' | 'P' | undefined;
 const { records } = JSON.parse(readFileSync(file, 'utf8')) as { records: HistoryRecord[] };
 const groups = groupByPuzzle(records);
 
@@ -44,13 +51,13 @@ console.log('Defaults (primary metric: single winner)');
 console.table([row('B ranked tuple', analyze(groups, modelB, DEFAULT_CONFIG)), row('D pair bonus 0.5', analyze(groups, modelD, DEFAULT_CONFIG)), row('D pair bonus 0.25', analyze(groups, modelD, { ...DEFAULT_CONFIG, orderBonusPerPair: 0.25 })), row('P position bonus 0.25', analyze(groups, modelP, DEFAULT_CONFIG)), row('Q weighted position 0.25', analyze(groups, modelQ, DEFAULT_CONFIG))]);
 
 for (const exampleModel of exampleModels) {
-  const examples = pickExamples(groups, exampleModel, exampleCfg, perKind);
+  const examples = pickExamples(groups, exampleModel, exampleCfg, perKind, { solvedFirst });
   const sections: [string, typeof examples.clearWinner][] = [
     ['Clear winner (exactly one player ranked first)', examples.clearWinner],
     ['Tie (two or more share first, but not everyone)', examples.tie],
     ['Everyone tied (nobody stood out)', examples.allTied],
   ];
-  console.log(`\nExample puzzles, model ${exampleModel.id} (most players first; 🏆 marks first place)`);
+  console.log(`\nExample puzzles, model ${exampleModel.id} (most players first; 🏆 marks first place)${solvedFirst ? `, only puzzles where someone solved ${solvedFirst} first` : ''}`);
   for (const [title, list] of sections) {
     console.log(`\n${title}`);
     console.log(list.length === 0 ? '  none in this history' : list.map((e) => formatExample(e, exampleModel)).join('\n\n'));
