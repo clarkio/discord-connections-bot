@@ -1,0 +1,19 @@
+{
+  "name": "discord-connections-bot",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "history:fetch": "bun run scripts/fetch-history.ts",
+    "history:analyze": "bun run scripts/analyze.ts"
+  },
+  "dependencies": {
+    "discord.js": "14.28.1"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.5",
+    "typescript": "7.0.2"
+  }
+}
