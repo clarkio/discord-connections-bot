@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { buildRecords, groupByPuzzle, type HistoryRecord } from '../analysis/history';
-import { analyze, sweep } from '../analysis/metrics';
+import { ORDER_BONUS_GRID, RAINBOW_PENALTY_GRID, analyze, sweep } from '../analysis/metrics';
 import { DEFAULT_CONFIG } from '../scoring/config';
 import { modelB, modelD } from '../scoring/models';
 
@@ -93,8 +93,12 @@ describe('sweep', () => {
   test('runs each parameter combination and labels it', () => {
     const groups = groupByPuzzle([rec('a', 1, PERFECT), rec('b', 1, ONE_MISTAKE)]);
     const rows = sweep(groups, modelD);
-    expect(rows.length).toBe(4 * 3);
+    expect(rows.length).toBe(ORDER_BONUS_GRID.length * RAINBOW_PENALTY_GRID.length);
     expect(rows[0]!.label).toContain('orderBonus');
     expect(new Set(rows.map((r) => r.label)).size).toBe(rows.length);
+  });
+
+  test('the order-bonus grid includes values finer than 0.25 and ones that do not line up with the penalties', () => {
+    for (const v of [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1]) expect(ORDER_BONUS_GRID).toContain(v);
   });
 });
