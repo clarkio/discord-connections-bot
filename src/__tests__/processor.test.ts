@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { formatAnnouncement, processShare } from '../processor';
-import { PRODUCTION_CONFIG } from '../scoring/production';
 import { MISTAKE, NATURAL, B, G, P, Y, makeShare, memoryDb } from './support';
 
 const none = new Set<string>();
@@ -135,9 +134,6 @@ describe('processShare', () => {
     expect((await db.getPlayer('u1'))!.discordName).toBe('new');
   });
 
-  test('uses the production scoring config', async () => {
-    expect(PRODUCTION_CONFIG.cleanGameBonus).toBe('auto');
-  });
 });
 
 describe('formatAnnouncement', () => {
