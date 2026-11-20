@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { parseShare } from '../connections/parser';
-import type { Share } from '../connections/types';
+import type { Color, Share } from '../connections/types';
 import { DEFAULT_CONFIG } from '../scoring/config';
-import { compareKeys, modelB, modelD, modelP, orderPairs, positionSteps } from '../scoring/models';
+import { compareKeys, modelB, modelD, modelP, modelQ, orderPairs, positionSteps, weightedPositionSteps } from '../scoring/models';
 import { determineWinners } from '../scoring/winners';
 
 function make(rows: string[]): Share {
@@ -191,5 +191,68 @@ describe('model P: weighted points with a position bonus', () => {
   test('the per-step weight is configurable', () => {
     expect(scoreP(make([P, B, G, Y]), { ...DEFAULT_CONFIG, positionBonusPerStep: 0 })).toBe(10);
     expect(scoreP(make([P, B, G, Y]), { ...DEFAULT_CONFIG, positionBonusPerStep: 1 })).toBe(14);
+  });
+});
+
+describe('weightedPositionSteps: position steps scaled by how hard the category is', () => {
+  const W = DEFAULT_CONFIG.positionStepWeights;
+
+  test('a step is worth 1, 2, 3 or 4 units depending on the category moved up', () => {
+    expect(weightedPositionSteps(['P'], W)).toBe(12); // 3 steps × 4
+    expect(weightedPositionSteps(['B'], W)).toBe(6); // 2 steps × 3
+    expect(weightedPositionSteps(['G'], W)).toBe(2); // 1 step × 2
+    expect(weightedPositionSteps(['Y'], W)).toBe(0);
+  });
+
+  test('natural order earns nothing', () => {
+    expect(weightedPositionSteps(['Y', 'G', 'B', 'P'], W)).toBe(0);
+  });
+
+  test('separates solve orders that the unweighted steps tied', () => {
+    // P,B,G,Y and B,P,G,Y were both 4 unweighted steps; going purple first now wins.
+    expect(weightedPositionSteps(['P', 'B', 'G', 'Y'], W)).toBe(15);
+    expect(weightedPositionSteps(['B', 'P', 'G', 'Y'], W)).toBe(14);
+    // P,Y,G,B and G,B,P,Y were both 3 unweighted steps.
+    expect(weightedPositionSteps(['P', 'Y', 'G', 'B'], W)).toBe(12);
+    expect(weightedPositionSteps(['G', 'B', 'P', 'Y'], W)).toBe(9);
+  });
+
+  test('across all 24 solve orders it produces 13 distinct values', () => {
+    const perms = (a: Color[]): Color[][] =>
+      a.length < 2 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p]));
+    const values = new Set(perms(['Y', 'G', 'B', 'P']).map((o) => weightedPositionSteps(o, W)));
+    expect(values.size).toBe(13);
+  });
+});
+
+describe('model Q: weighted points with a difficulty-weighted position bonus', () => {
+  const scoreQ = (s: Share, cfg = DEFAULT_CONFIG) => modelQ.rankKey(s, cfg)[0]!;
+
+  test('natural order is the plain 10-point base', () => {
+    expect(scoreQ(make([Y, G, B, P]))).toBe(10);
+  });
+  test('purple first, blue second adds 15 units × 0.25 = 3.75', () => {
+    expect(scoreQ(make([P, B, G, Y]))).toBe(13.75);
+  });
+  test('players who tied under model P are now separated', () => {
+    expect(scoreQ(make([P, B, G, Y]))).toBeGreaterThan(scoreQ(make([B, P, G, Y])));
+    expect(scoreQ(make([P, Y, G, B]))).toBeGreaterThan(scoreQ(make([G, B, P, Y])));
+  });
+  test('every distinct solve-order bonus differs by at least one unit (0.25)', () => {
+    const orders: Color[][] = [['Y','G','B','P'], ['G','Y','B','P'], ['B','Y','G','P'], ['P','Y','G','B'], ['P','B','G','Y'], ['B','P','G','Y']];
+    const scores = orders.map((o) => weightedPositionSteps(o, DEFAULT_CONFIG.positionStepWeights) * 0.25);
+    for (const s of scores) expect(s % 0.25).toBe(0);
+  });
+  test('mistakes, rainbows and failed games work as in model D', () => {
+    expect(scoreQ(make([MISTAKE, RAINBOW, P, B, G, Y]))).toBe(10 - 1 - 0.5 + 3.75);
+    expect(scoreQ(make([P, MISTAKE, MISTAKE, MISTAKE, MISTAKE]))).toBe(4 - 4 + 3);
+  });
+  test('the unit is configurable', () => {
+    expect(scoreQ(make([P, B, G, Y]), { ...DEFAULT_CONFIG, weightedPositionBonusPerUnit: 0.5 })).toBe(17.5);
+    expect(scoreQ(make([P, B, G, Y]), { ...DEFAULT_CONFIG, weightedPositionBonusPerUnit: 0 })).toBe(10);
+  });
+  test('the per-category step weights are configurable', () => {
+    const cfg = { ...DEFAULT_CONFIG, positionStepWeights: { Y: 0, G: 1, B: 2, P: 3 } };
+    expect(scoreQ(make([P, B, G, Y]), cfg)).toBe(10 + 11 * 0.25); // P 3×3 + B 1×2
   });
 });
