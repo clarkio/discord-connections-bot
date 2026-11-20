@@ -46,12 +46,15 @@ export interface SweepRow {
   metrics: Metrics;
 }
 
+export const ORDER_BONUS_GRID = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1];
+export const RAINBOW_PENALTY_GRID = [0, 0.5, 1];
+
 /** Vary the tunable parameters of a model over a small grid. */
 export function sweep(groups: Map<number, Entry[]>, model: ScoringModel): SweepRow[] {
   const rows: SweepRow[] = [];
   if (model.id === 'D') {
-    for (const orderBonusPerPair of [0, 0.25, 0.5, 1]) {
-      for (const rainbowPenalty of [0, 0.5, 1]) {
+    for (const orderBonusPerPair of ORDER_BONUS_GRID) {
+      for (const rainbowPenalty of RAINBOW_PENALTY_GRID) {
         const cfg = { ...DEFAULT_CONFIG, orderBonusPerPair, rainbowPenalty };
         rows.push({
           label: `orderBonus=${orderBonusPerPair} rainbowPenalty=${rainbowPenalty}`,
