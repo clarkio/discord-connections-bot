@@ -95,3 +95,17 @@ export const modelQ: ScoringModel = {
     return [base - penalty + units * cfg.weightedPositionBonusPerUnit];
   },
 };
+
+export const ALL_MODELS: ScoringModel[] = [modelB, modelD, modelP, modelQ];
+
+/** Pick models by id from a comma-separated list or "all". With no value, the scored models D, P and Q. */
+export function resolveModels(value?: string): ScoringModel[] {
+  if (value === undefined) return [modelD, modelP, modelQ];
+  if (value.trim().toLowerCase() === 'all') return ALL_MODELS;
+  return value.split(',').map((raw) => {
+    const id = raw.trim().toUpperCase();
+    const model = ALL_MODELS.find((m) => m.id === id);
+    if (!model) throw new Error(`Unknown model "${raw.trim()}". Use B, D, P, Q or all.`);
+    return model;
+  });
+}

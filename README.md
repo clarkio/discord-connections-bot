@@ -30,7 +30,7 @@ The analysis reports, per model and per sweep setting, over puzzles with two or 
 rate (primary), average winner-group size, average margin between first and second (model D only), and the
 share of puzzles where everyone tied.
 It also prints example puzzles for each outcome (clear winner, tie, everyone tied). Use
-`--model=B|D|P|Q`, `--order-bonus=`, `--position-bonus=`, `--position-unit=`, `--rainbow-penalty=` and `--examples=N` to choose what the examples use.
+`--model=B,D,P,Q|all` (default D,P,Q), `--order-bonus=`, `--position-bonus=`, `--position-unit=`, `--rainbow-penalty=` and `--examples=N` to choose what the examples use.
 
 ## Development
 
