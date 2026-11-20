@@ -48,12 +48,29 @@ export interface SweepRow {
 
 export const ORDER_BONUS_GRID = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1];
 export const POSITION_BONUS_GRID = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1];
+export const WEIGHTED_UNIT_GRID = [0.25, 0.5];
+export const STEP_WEIGHT_SCHEMES = [
+  { label: '1-2-3-4', weights: { Y: 1, G: 2, B: 3, P: 4 } },
+  { label: '0-1-2-3', weights: { Y: 0, G: 1, B: 2, P: 3 } },
+];
 export const RAINBOW_PENALTY_GRID = [0, 0.5, 1];
 
 /** Vary the tunable parameters of a model over a small grid. */
 export function sweep(groups: Map<number, Entry[]>, model: ScoringModel): SweepRow[] {
   const rows: SweepRow[] = [];
-  if (model.id === 'P') {
+  if (model.id === 'Q') {
+    for (const weightedPositionBonusPerUnit of WEIGHTED_UNIT_GRID) {
+      for (const scheme of STEP_WEIGHT_SCHEMES) {
+        for (const rainbowPenalty of RAINBOW_PENALTY_GRID) {
+          const cfg = { ...DEFAULT_CONFIG, weightedPositionBonusPerUnit, positionStepWeights: scheme.weights, rainbowPenalty };
+          rows.push({
+            label: `weightedUnit=${weightedPositionBonusPerUnit} weights=${scheme.label} rainbowPenalty=${rainbowPenalty}`,
+            metrics: analyze(groups, model, cfg),
+          });
+        }
+      }
+    }
+  } else if (model.id === 'P') {
     for (const positionBonusPerStep of POSITION_BONUS_GRID) {
       for (const rainbowPenalty of RAINBOW_PENALTY_GRID) {
         const cfg = { ...DEFAULT_CONFIG, positionBonusPerStep, rainbowPenalty };

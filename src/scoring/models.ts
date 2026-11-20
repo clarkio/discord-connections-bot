@@ -2,7 +2,7 @@ import { DIFFICULTY, type Color, type Share } from '../connections/types';
 import type { ScoringConfig } from './config';
 
 export interface ScoringModel {
-  id: 'B' | 'D' | 'P';
+  id: 'B' | 'D' | 'P' | 'Q';
   /** True when the first key component is a numeric daily score (so margins and totals make sense). */
   scored: boolean;
   /** Higher keys rank better; compare with compareKeys. */
@@ -72,5 +72,26 @@ export const modelP: ScoringModel = {
     const base = share.solvedOrder.reduce((sum, c) => sum + cfg.categoryWeights[c], 0);
     const penalty = share.mistakes * cfg.mistakePenalty + share.rainbows * cfg.rainbowPenalty;
     return [base - penalty + positionSteps(share.solvedOrder) * cfg.positionBonusPerStep];
+  },
+};
+
+/**
+ * Like positionSteps, but each place a category moved up is worth more units
+ * the harder the category is, so solving purple first outweighs solving blue
+ * first. This separates solve orders that the plain step count ties.
+ */
+export function weightedPositionSteps(solvedOrder: Color[], weights: Record<Color, number>): number {
+  return solvedOrder.reduce((sum, c, i) => sum + Math.max(0, DIFFICULTY[c] - (i + 1)) * weights[c], 0);
+}
+
+/** Model Q: model P with a difficulty-weighted position bonus, in whole units of at least 0.25. */
+export const modelQ: ScoringModel = {
+  id: 'Q',
+  scored: true,
+  rankKey(share, cfg) {
+    const base = share.solvedOrder.reduce((sum, c) => sum + cfg.categoryWeights[c], 0);
+    const penalty = share.mistakes * cfg.mistakePenalty + share.rainbows * cfg.rainbowPenalty;
+    const units = weightedPositionSteps(share.solvedOrder, cfg.positionStepWeights);
+    return [base - penalty + units * cfg.weightedPositionBonusPerUnit];
   },
 };

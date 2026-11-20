@@ -12,6 +12,10 @@ export interface ScoringConfig {
   orderBonusPerPair: number;
   /** Model P: points gained per place a category was solved ahead of its natural position. */
   positionBonusPerStep: number;
+  /** Model Q: how many units one place of position progress is worth, by the category that moved up. */
+  positionStepWeights: Record<Color, number>;
+  /** Model Q: points per unit. Kept at 0.25 or more so every score difference is a clean multiple. */
+  weightedPositionBonusPerUnit: number;
   /** Model B: how much of a mistake a rainbow guess counts as. */
   rainbowMistakeWeight: number;
   /** Model B: whether hardest-first solve order breaks otherwise-equal results. */
@@ -24,6 +28,8 @@ export const DEFAULT_CONFIG: ScoringConfig = {
   rainbowPenalty: 0.5,
   orderBonusPerPair: 0.5,
   positionBonusPerStep: 0.25,
+  positionStepWeights: { Y: 1, G: 2, B: 3, P: 4 },
+  weightedPositionBonusPerUnit: 0.25,
   rainbowMistakeWeight: 0.5,
   orderTiebreak: true,
 };
