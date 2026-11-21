@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { handleMessage, type HandlerContext } from '../handler';
-import { MISTAKE, NATURAL, fakeMessage, memoryDb, shareText } from './support';
+import { MISTAKE, NATURAL, RAINBOW, fakeMessage, memoryDb, shareText } from './support';
 
 async function ctx(over: Partial<HandlerContext> = {}): Promise<HandlerContext> {
   return { db: await memoryDb(), ignoredIds: new Set(), taggingEnabled: true, targetChannelId: 'chan', ...over };
@@ -116,5 +116,71 @@ describe('handleMessage', () => {
     const m = fakeMessage(shareText(NATURAL));
     await handleMessage(m, c);
     expect(m.reactions).toEqual([]);
+  });
+});
+
+const Y_ROW = '🟨🟨🟨🟨';
+
+describe('rainbow reaction', () => {
+  test('a counted share with a rainbow guess gets 🌈 as well as ✅', async () => {
+    const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['✅', '🌈']);
+  });
+
+  test('a share without a rainbow guess gets only ✅', async () => {
+    const m = fakeMessage(shareText([MISTAKE, ...NATURAL]));
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['✅']);
+  });
+
+  test('several rainbow guesses still give a single 🌈', async () => {
+    const m = fakeMessage(shareText([RAINBOW, RAINBOW, ...NATURAL]));
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['✅', '🌈']);
+  });
+
+  test('a rainbow guess in a failed game counts too', async () => {
+    const m = fakeMessage(shareText([RAINBOW, MISTAKE, MISTAKE, MISTAKE]));
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['✅', '🌈']);
+  });
+
+  test('a duplicate share gets no reaction at all', async () => {
+    const c = await ctx();
+    await handleMessage(fakeMessage(shareText([RAINBOW, ...NATURAL])), c);
+    const again = fakeMessage(shareText([RAINBOW, ...NATURAL]));
+    await handleMessage(again, c);
+    expect(again.reactions).toEqual([]);
+  });
+
+  test('an impossible share gets ❌ only, even if it contains a rainbow row', async () => {
+    const m = fakeMessage(shareText([RAINBOW, Y_ROW]));
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['❌']);
+  });
+
+  test('an ignored player still gets 🌈', async () => {
+    const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
+    await handleMessage(m, await ctx({ ignoredIds: new Set(['u1']) }));
+    expect(m.reactions).toEqual(['✅', '🌈']);
+  });
+
+  test('a rainbow winner is still announced', async () => {
+    const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
+    await handleMessage(m, await ctx());
+    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 13.5 points (solved 4/4, 1 mistake): <@u1>']);
+  });
+
+  test('if the 🌈 reaction fails, ✅ and the announcement are unaffected', async () => {
+    const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
+    const original = m.react.bind(m);
+    m.react = async (emoji) => {
+      if (emoji === '🌈') throw new Error('Missing Permissions');
+      await original(emoji);
+    };
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['✅']);
+    expect(m.sent).toHaveLength(1);
   });
 });
