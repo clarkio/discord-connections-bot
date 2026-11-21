@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits, type Message } from 'discord.js';
 import { TursoDatabase } from './db/turso';
-import { handleMessage, parseIgnoredUserIds, type ChatMessage, type HandlerContext } from './handler';
+import { handleMessage, isTaggingEnabled, parseIgnoredUserIds, type ChatMessage, type HandlerContext } from './handler';
 
 const token = process.env.BOT_TOKEN;
 const targetChannelId = process.env.TARGET_CHANNEL_ID;
@@ -16,7 +16,7 @@ await db.migrate();
 const ctx: HandlerContext = {
   db,
   ignoredIds: parseIgnoredUserIds(process.env.IGNORED_USER_IDS),
-  taggingEnabled: process.env.USER_TAGGING_ENABLED === 'true',
+  taggingEnabled: isTaggingEnabled(process.env.USER_TAGGING_ENABLED),
   targetChannelId,
 };
 

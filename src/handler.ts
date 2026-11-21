@@ -23,6 +23,11 @@ export interface ChatMessage {
   channel: { send(text: string): Promise<void> };
 }
 
+/** USER_TAGGING_ENABLED is on for `true` in any letter case, ignoring surrounding whitespace; anything else is off. */
+export function isTaggingEnabled(envValue: string | undefined): boolean {
+  return (envValue ?? '').trim().toLowerCase() === 'true';
+}
+
 export function parseIgnoredUserIds(envValue: string | undefined): Set<string> {
   return new Set((envValue ?? '').split(',').map((id) => id.trim()).filter(Boolean));
 }
