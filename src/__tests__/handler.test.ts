@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { handleMessage, type HandlerContext } from '../handler';
+import { handleMessage, isTaggingEnabled, type HandlerContext } from '../handler';
 import { MISTAKE, NATURAL, RAINBOW, fakeMessage, memoryDb, shareText } from './support';
 
 async function ctx(over: Partial<HandlerContext> = {}): Promise<HandlerContext> {
@@ -182,5 +182,15 @@ describe('rainbow reaction', () => {
     await handleMessage(m, await ctx());
     expect(m.reactions).toEqual(['✅']);
     expect(m.sent).toHaveLength(1);
+  });
+});
+
+describe('isTaggingEnabled: reading USER_TAGGING_ENABLED', () => {
+  test.each(['true', 'TRUE', 'True', 'tRuE', ' true ', 'TRUE\n'])('%j turns tagging on', (value) => {
+    expect(isTaggingEnabled(value)).toBe(true);
+  });
+
+  test.each([undefined, '', 'false', 'FALSE', 'yes', '1', 'on', 'truee', 'not true'])('%j leaves tagging off', (value) => {
+    expect(isTaggingEnabled(value)).toBe(false);
   });
 });

@@ -22,7 +22,7 @@ currently winning that puzzle whenever the sharer is among the winners (a tie is
 - Commands: `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
   data, results are recorded either way), `!results [puzzle]` (your result plus lifetime totals).
 - `IGNORED_USER_IDS` players are recorded but never count toward winners or ties. `USER_TAGGING_ENABLED=true`
-  mentions winners instead of printing names.
+  (any letter case) mentions winners instead of printing names; if it is unset or anything else, names are printed.
 
 ```bash
 cp .env.example .env   # fill in BOT_TOKEN and TARGET_CHANNEL_ID
