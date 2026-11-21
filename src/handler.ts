@@ -4,6 +4,7 @@ import type { ConnectionsDatabase } from './db/types';
 import { formatAnnouncement, processShare } from './processor';
 
 export const PREFIX = '!';
+export const RAINBOW_EMOJI = '🌈';
 
 export interface HandlerContext {
   db: ConnectionsDatabase;
@@ -26,6 +27,15 @@ export function parseIgnoredUserIds(envValue: string | undefined): Set<string> {
   return new Set((envValue ?? '').split(',').map((id) => id.trim()).filter(Boolean));
 }
 
+/** A rainbow reaction is a flourish: if it fails (say, a missing permission) nothing else should be lost. */
+async function reactToRainbow(message: ChatMessage): Promise<void> {
+  try {
+    await message.react(RAINBOW_EMOJI);
+  } catch (error) {
+    console.error('Could not add the rainbow reaction:', error);
+  }
+}
+
 async function handleShare(message: ChatMessage, ctx: HandlerContext): Promise<void> {
   const parsed = parseShare(message.content)!;
   if (parsed.status === 'invalid') {
@@ -39,6 +49,7 @@ async function handleShare(message: ChatMessage, ctx: HandlerContext): Promise<v
       return;
     }
     await message.react('✅');
+    if (parsed.share.rainbows > 0) await reactToRainbow(message);
     if (outcome.announce) await message.channel.send(formatAnnouncement(outcome, ctx.taggingEnabled));
   } catch (error) {
     console.error('Error processing Connections share:', error);

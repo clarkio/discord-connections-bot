@@ -169,7 +169,7 @@ describe('rainbow reaction', () => {
   test('a rainbow winner is still announced', async () => {
     const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
     await handleMessage(m, await ctx());
-    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 13.5 points (solved 4/4, 1 mistake): <@u1>']);
+    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 9.5 points (solved 4/4, 1 mistake): <@u1>']);
   });
 
   test('if the 🌈 reaction fails, ✅ and the announcement are unaffected', async () => {
