@@ -4,6 +4,9 @@ export type Color = 'Y' | 'G' | 'B' | 'P';
 /** Difficulty rank of each category; higher is harder. */
 export const DIFFICULTY: Record<Color, number> = { Y: 1, G: 2, B: 3, P: 4 };
 
+/** The coloured square each category appears as in a share. */
+export const COLOR_SQUARE: Record<Color, string> = { Y: '🟨', G: '🟩', B: '🟦', P: '🟪' };
+
 export interface Guess {
   colors: Color[];
   /** solved: one colour. rainbow: four different colours. mistake: anything else. */

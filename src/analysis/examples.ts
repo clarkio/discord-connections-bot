@@ -1,10 +1,8 @@
-import type { Color } from '../connections/types';
+import { COLOR_SQUARE, type Color } from '../connections/types';
 import type { ScoringConfig } from '../scoring/config';
 import { describeComponent } from '../scoring/format';
 import type { ScoreComponent, ScoringModel } from '../scoring/models';
 import { determineWinners, type Entry } from '../scoring/winners';
-
-const SQUARE: Record<Color, string> = { Y: '🟨', G: '🟩', B: '🟦', P: '🟪' };
 
 export interface ExamplePlayer {
   playerId: string;
@@ -57,7 +55,7 @@ export function pickExamples(
       puzzleNumber,
       players: ranking!.map((r) => ({
         playerId: r.playerId,
-        rows: r.share.guesses.map((g) => g.colors.map((c) => SQUARE[c]).join('')).join(' '),
+        rows: r.share.guesses.map((g) => g.colors.map((c) => COLOR_SQUARE[c]).join('')).join(' '),
         key: r.key,
         winner: winners.includes(r.playerId),
         breakdown: model.breakdown?.(r.share, cfg),
