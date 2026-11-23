@@ -157,14 +157,14 @@ describe('formatAnnouncement', () => {
   test('single winner, tagged, with the score breakdown', async () => {
     const out = await outcomeFor([MISTAKE, ...NATURAL], NATURAL);
     expect(formatAnnouncement(out, true)).toBe(
-      'Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): <@u2>\n• categories +10 (Y+1 G+2 B+3 P+4)\n• clean game bonus +4 (no mistakes)',
+      'Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): <@u2>\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)',
     );
   });
 
   test('single winner, names instead of tags', async () => {
     const out = await outcomeFor(NATURAL);
     expect(formatAnnouncement(out, false)).toBe(
-      'Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): u1\n• categories +10 (Y+1 G+2 B+3 P+4)\n• clean game bonus +4 (no mistakes)',
+      'Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): u1\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)',
     );
   });
 
@@ -172,8 +172,8 @@ describe('formatAnnouncement', () => {
     const out = await outcomeFor(NATURAL, NATURAL);
     expect(formatAnnouncement(out, true)).toBe(
       'Current Winners (tie) for Connections #1000 with 14 points: <@u1>, <@u2>\n' +
-        '<@u1>: solved 4/4, 0 mistakes\n• categories +10 (Y+1 G+2 B+3 P+4)\n• clean game bonus +4 (no mistakes)\n' +
-        '<@u2>: solved 4/4, 0 mistakes\n• categories +10 (Y+1 G+2 B+3 P+4)\n• clean game bonus +4 (no mistakes)',
+        '<@u1>: solved 4/4, 0 mistakes\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)\n' +
+        '<@u2>: solved 4/4, 0 mistakes\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)',
     );
   });
 
@@ -186,7 +186,7 @@ describe('formatAnnouncement', () => {
   test('a failed winner says how far they got, with singular and plural wording', async () => {
     const out = await outcomeFor([Y, MISTAKE, MISTAKE, MISTAKE, MISTAKE]);
     expect(formatAnnouncement(out, true)).toBe(
-      'Current Winner for Connections #1000 with -3 points (solved 1/4, 4 mistakes): <@u1>\n• categories +1 (Y+1)\n• mistakes -4 (4 × -1)',
+      'Current Winner for Connections #1000 with -3 points (solved 1/4, 4 mistakes): <@u1>\n• categories +1 (🟨+1)\n• mistakes -4 (4 × -1)',
     );
     const one = await outcomeFor([MISTAKE, ...NATURAL]);
     expect(formatAnnouncement(one, true)).toContain('1 mistake):');
@@ -207,7 +207,7 @@ describe('formatShareReply', () => {
   test('the sharer\'s puzzle, points, solved, mistakes and breakdown, with no lifetime stats', async () => {
     const out = await outcomeFor(NATURAL, [MISTAKE, ...NATURAL]);
     const text = formatShareReply(out, true);
-    expect(text).toBe('<@u2> Puzzle #1000: 9 points, solved 4/4, 1 mistake\n• categories +10 (Y+1 G+2 B+3 P+4)\n• mistakes -1 (1 × -1)');
+    expect(text).toBe('<@u2> Puzzle #1000: 9 points, solved 4/4, 1 mistake\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• mistakes -1 (1 × -1)');
     expect(text).not.toContain('Lifetime');
   });
 
@@ -226,7 +226,7 @@ describe('formatShareReply', () => {
   test('shows the position and clean game bonuses when earned', async () => {
     const out = await outcomeFor([P, B, G, Y]);
     const text = formatShareReply(out, true);
-    expect(text).toContain('• position bonus +3.75 (P solved 1st: 3 steps × 4 = 12; B solved 2nd: 1 step × 3 = 3; 15 units × 0.25)');
+    expect(text).toContain('• position bonus +3.75 (🟪 solved 1st: 3 steps × 4 = 12; 🟦 solved 2nd: 1 step × 3 = 3; 15 units × 0.25)');
     expect(text).toContain('• clean game bonus +4 (no mistakes)');
   });
 
