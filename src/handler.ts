@@ -1,7 +1,7 @@
 import { COMMANDS } from './commands';
 import { parseShare } from './connections/parser';
 import type { ConnectionsDatabase } from './db/types';
-import { formatAnnouncement, processShare } from './processor';
+import { formatAnnouncement, formatShareReply, processShare } from './processor';
 
 export const PREFIX = '!';
 export const RAINBOW_EMOJI = '🌈';
@@ -55,7 +55,10 @@ async function handleShare(message: ChatMessage, ctx: HandlerContext): Promise<v
     }
     await message.react('✅');
     if (parsed.share.rainbows > 0) await reactToRainbow(message);
-    if (outcome.announce) await message.channel.send(formatAnnouncement(outcome, ctx.taggingEnabled));
+    // One message per counted share: the announcement when they are winning, otherwise their own result.
+    await message.channel.send(
+      outcome.announce ? formatAnnouncement(outcome, ctx.taggingEnabled) : formatShareReply(outcome, ctx.taggingEnabled),
+    );
   } catch (error) {
     console.error('Error processing Connections share:', error);
   }

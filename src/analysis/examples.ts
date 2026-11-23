@@ -1,5 +1,6 @@
 import type { Color } from '../connections/types';
 import type { ScoringConfig } from '../scoring/config';
+import { describeComponent } from '../scoring/format';
 import type { ScoreComponent, ScoringModel } from '../scoring/models';
 import { determineWinners, type Entry } from '../scoring/winners';
 
@@ -66,8 +67,6 @@ export function pickExamples(
   return out;
 }
 
-const signed = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
-
 export function formatExample(ex: Example, model: ScoringModel): string {
   const lines = ex.players.map((p) => {
     const result =
@@ -75,7 +74,7 @@ export function formatExample(ex: Example, model: ScoringModel): string {
         ? `score ${p.key[0]}`
         : `solved ${p.key[0]}, mistakes ${-p.key[1]!}, order ${p.key[2]}`;
     const head = `  ${p.winner ? '🏆' : '  '} ${p.playerId.slice(0, 8)}  ${result.padEnd(32)} ${p.rows}`;
-    const parts = (p.breakdown ?? []).map((c) => `       ${c.label} ${signed(c.points)} (${c.detail})`);
+    const parts = (p.breakdown ?? []).map((c) => `       ${describeComponent(c)}`);
     return [head, ...parts].join('\n');
   });
   return [`Puzzle #${ex.puzzleNumber}`, ...lines].join('\n');

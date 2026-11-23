@@ -137,7 +137,7 @@ export const modelR: ScoringModel = {
     const parts = modelQ.breakdown!(share, cfg);
     if (isClean(share)) {
       const bonus = cleanGameBonusFor(cfg);
-      parts.push({ label: 'clean game bonus', points: bonus, detail: `no mistakes, so always ahead of any game with one (largest position bonus is ${maxPositionBonus(cfg)})` });
+      parts.push({ label: 'clean game bonus', points: bonus, detail: 'no mistakes' });
     }
     return parts;
   },
