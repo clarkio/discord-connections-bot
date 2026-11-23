@@ -177,8 +177,7 @@ describe('formatAnnouncement', () => {
     );
   });
 
-  test('tied winners can reach the same score in different ways, and each breakdown shows it', async () => {
-    // Both score 17.75? No: use equal scores from different shapes by comparing a rainbow and a plain mistake game only when equal.
+  test('every tied winner gets their own breakdown lines', async () => {
     const out = await outcomeFor([P, B, G, Y], [P, B, G, Y]);
     const text = formatAnnouncement(out, true);
     expect(text.match(/• position bonus \+3\.75/g)).toHaveLength(2);
