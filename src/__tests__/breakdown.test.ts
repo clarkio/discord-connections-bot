@@ -51,7 +51,7 @@ describe('breakdown components', () => {
   test('categories are listed with their weights', () => {
     const c = by(modelD, SHARES.natural!).categories!;
     expect(c.points).toBe(10);
-    expect(c.detail).toBe('Y+1 G+2 B+3 P+4');
+    expect(c.detail).toBe('🟨+1 🟩+2 🟦+3 🟪+4');
   });
 
   test('mistakes and rainbows appear only when there are some, as negative points', () => {
@@ -64,22 +64,22 @@ describe('breakdown components', () => {
     const b = by(modelD, SHARES.hardestFirst!)['order bonus']!;
     expect(b.points).toBe(3);
     expect(b.detail).toContain('6 pairs × 0.5');
-    expect(b.detail).toContain('P before Y');
+    expect(b.detail).toContain('🟪 before 🟨');
   });
 
   test('model P explains its position bonus per category', () => {
     const b = by(modelP, SHARES.hardestFirst!)['position bonus']!;
     expect(b.points).toBe(1);
-    expect(b.detail).toContain('P solved 1st: 3 steps');
-    expect(b.detail).toContain('B solved 2nd: 1 step');
+    expect(b.detail).toContain('🟪 solved 1st: 3 steps');
+    expect(b.detail).toContain('🟦 solved 2nd: 1 step');
     expect(b.detail).toContain('4 steps × 0.25');
   });
 
   test('model Q explains its weighted position bonus per category', () => {
     const b = by(modelQ, SHARES.hardestFirst!)['position bonus']!;
     expect(b.points).toBe(3.75);
-    expect(b.detail).toContain('P solved 1st: 3 steps × 4 = 12');
-    expect(b.detail).toContain('B solved 2nd: 1 step × 3 = 3');
+    expect(b.detail).toContain('🟪 solved 1st: 3 steps × 4 = 12');
+    expect(b.detail).toContain('🟦 solved 2nd: 1 step × 3 = 3');
     expect(b.detail).toContain('15 units × 0.25');
   });
 
@@ -100,7 +100,7 @@ describe('breakdown in the examples', () => {
     const ex = pickExamples(groups, modelQ, DEFAULT_CONFIG, 1).clearWinner[0]!;
     const text = formatExample(ex, modelQ);
     expect(text).toContain('score 12.75');
-    expect(text).toContain('categories +10 (Y+1 G+2 B+3 P+4)');
+    expect(text).toContain('categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)');
     expect(text).toContain('mistakes -1 (1 × -1)');
     expect(text).toContain('position bonus +3.75');
   });
@@ -108,5 +108,28 @@ describe('breakdown in the examples', () => {
   test('model B keeps its rank-key line and adds no breakdown', () => {
     const ex = pickExamples(groups, modelB, DEFAULT_CONFIG, 1).clearWinner[0]!;
     expect(formatExample(ex, modelB)).not.toContain('categories +');
+  });
+});
+
+describe('breakdown text uses colour squares, not letters', () => {
+  const text = (model: typeof modelQ, share: Share) =>
+    model.breakdown!(share, DEFAULT_CONFIG).map((c) => c.detail).join(' | ');
+
+  test('solved categories, in the order they were solved', () => {
+    expect(text(modelQ, SHARES.hardestFirst!)).toContain('🟪+4 🟦+3 🟩+2 🟨+1');
+  });
+
+  test('position bonus names each category that moved up with its square', () => {
+    const t = text(modelQ, SHARES.hardestFirst!);
+    expect(t).toContain('🟪 solved 1st: 3 steps × 4 = 12');
+    expect(t).toContain('🟦 solved 2nd: 1 step × 3 = 3');
+  });
+
+  test('no colour letters are left in any breakdown detail', () => {
+    for (const model of [modelD, modelP, modelQ]) {
+      for (const share of Object.values(SHARES)) {
+        expect(text(model, share)).not.toMatch(/(^|[\s(])[YGBP]([+\s])/);
+      }
+    }
   });
 });

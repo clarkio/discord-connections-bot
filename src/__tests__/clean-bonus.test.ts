@@ -112,7 +112,7 @@ describe('model R: a clean game always beats any game with a mistake', () => {
 
   test('a clean-game bonus component explains the extra points', () => {
     const parts = modelR.breakdown!(share(['Y', 'G', 'B', 'P'], 0, 0), DEFAULT_CONFIG);
-    expect(parts.find((c) => c.label === 'clean game bonus')).toMatchObject({ points: 4 });
+    expect(parts.find((c) => c.label === 'clean game bonus')).toMatchObject({ points: 4, detail: 'no mistakes' });
     expect(parts.reduce((t, c) => t + c.points, 0)).toBe(14);
   });
 

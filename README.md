@@ -16,6 +16,9 @@ Reads shares posted in `TARGET_CHANNEL_ID`, scores each one, stores it in Turso,
 currently winning that puzzle whenever the sharer is among the winners (a tie is announced too).
 
 - 🌈 as well as ✅ on a counted share that contains a rainbow guess (one word from each of the four categories).
+- One message per counted share: when the sharer is among the current winners, the winner announcement
+  (with each winner's score breakdown); otherwise a reply with their puzzle number, points, solved categories,
+  mistakes and score breakdown. Ignored players get the reply, never the announcement.
 - ✅ on a counted share, ❌ on a message that looks like a share but is impossible, nothing for a duplicate
   (the first share per player and puzzle counts; a first-ever share for an old puzzle is accepted).
 - Scoring is fixed to model **R**, with the settings in `src/scoring/production.ts`.

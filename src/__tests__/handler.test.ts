@@ -27,17 +27,19 @@ describe('handleMessage', () => {
     const m = fakeMessage(shareText(NATURAL));
     await handleMessage(m, c);
     expect(m.reactions).toEqual(['✅']);
-    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): <@u1>']);
+    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): <@u1>\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)']);
     expect(await c.db.hasResult('u1', 1000)).toBe(true);
   });
 
-  test('a valid share that is not winning gets ✅ but no announcement', async () => {
+  test('a share that is not winning gets ✅ and a personal reply with its score breakdown', async () => {
     const c = await ctx();
     await handleMessage(fakeMessage(shareText(NATURAL), { id: 'u1' }), c);
     const m = fakeMessage(shareText([MISTAKE, ...NATURAL]), { id: 'u2' });
     await handleMessage(m, c);
     expect(m.reactions).toEqual(['✅']);
-    expect(m.sent).toEqual([]);
+    expect(m.sent).toEqual([
+      '<@u2> Puzzle #1000: 9 points, solved 4/4, 1 mistake\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• mistakes -1 (1 × -1)',
+    ]);
   });
 
   test('an impossible share gets ❌ only, and is not stored', async () => {
@@ -58,12 +60,12 @@ describe('handleMessage', () => {
     expect(m.sent).toEqual([]);
   });
 
-  test('an ignored player\'s share is confirmed but never announced', async () => {
+  test('an ignored player\'s share is confirmed and gets a personal reply, but is never announced as a winner', async () => {
     const c = await ctx({ ignoredIds: new Set(['u1']) });
     const m = fakeMessage(shareText(NATURAL));
     await handleMessage(m, c);
     expect(m.reactions).toEqual(['✅']);
-    expect(m.sent).toEqual([]);
+    expect(m.sent).toEqual(['<@u1> Puzzle #1000: 14 points, solved 4/4, 0 mistakes\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)']);
   });
 
   test('announcements use names when tagging is off', async () => {
@@ -169,7 +171,9 @@ describe('rainbow reaction', () => {
   test('a rainbow winner is still announced', async () => {
     const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
     await handleMessage(m, await ctx());
-    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 9.5 points (solved 4/4, 1 mistake): <@u1>']);
+    expect(m.sent).toEqual([
+      'Current Winner for Connections #1000 with 9.5 points (solved 4/4, 1 mistake): <@u1>\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• rainbows -0.5 (1 × -0.5)',
+    ]);
   });
 
   test('if the 🌈 reaction fails, ✅ and the announcement are unaffected', async () => {
@@ -192,5 +196,56 @@ describe('isTaggingEnabled: reading USER_TAGGING_ENABLED', () => {
 
   test.each([undefined, '', 'false', 'FALSE', 'yes', '1', 'on', 'truee', 'not true'])('%j leaves tagging off', (value) => {
     expect(isTaggingEnabled(value)).toBe(false);
+  });
+});
+
+describe('one message per counted share', () => {
+  test('a winner gets the announcement with details and no second reply', async () => {
+    const m = fakeMessage(shareText(NATURAL));
+    await handleMessage(m, await ctx());
+    expect(m.sent).toHaveLength(1);
+    expect(m.sent[0]).toMatch(/^Current Winner for Connections #1000/);
+  });
+
+  test('a tied sharer gets the tie announcement with each winner\'s details', async () => {
+    const c = await ctx();
+    await handleMessage(fakeMessage(shareText(NATURAL), { id: 'u1' }), c);
+    const m = fakeMessage(shareText(NATURAL), { id: 'u2' });
+    await handleMessage(m, c);
+    expect(m.sent).toHaveLength(1);
+    expect(m.sent[0]).toContain('Current Winners (tie)');
+    expect(m.sent[0]).toContain('<@u1>: solved 4/4, 0 mistakes');
+    expect(m.sent[0]).toContain('<@u2>: solved 4/4, 0 mistakes');
+  });
+
+  test('the reply names the player when tagging is off', async () => {
+    const c = await ctx({ taggingEnabled: false });
+    await handleMessage(fakeMessage(shareText(NATURAL), { id: 'u1' }), c);
+    const m = fakeMessage(shareText([MISTAKE, ...NATURAL]), { id: 'u2', name: 'bob' });
+    await handleMessage(m, c);
+    expect(m.sent[0]).toMatch(/^bob Puzzle #1000: 9 points/);
+  });
+
+  test('a duplicate share gets no reply', async () => {
+    const c = await ctx();
+    await handleMessage(fakeMessage(shareText(NATURAL)), c);
+    const again = fakeMessage(shareText(NATURAL));
+    await handleMessage(again, c);
+    expect(again.sent).toEqual([]);
+  });
+
+  test('an impossible share gets no reply', async () => {
+    const m = fakeMessage('Connections\nPuzzle #1000\n🟨🟨🟨🟨');
+    await handleMessage(m, await ctx());
+    expect(m.sent).toEqual([]);
+  });
+
+  test('if sending the message fails, the share is still stored and confirmed', async () => {
+    const c = await ctx();
+    const m = fakeMessage(shareText(NATURAL));
+    m.channel.send = async () => { throw new Error('Missing Permissions'); };
+    await handleMessage(m, c);
+    expect(m.reactions).toEqual(['✅']);
+    expect(await c.db.hasResult('u1', 1000)).toBe(true);
   });
 });

@@ -1,5 +1,6 @@
 import type { Share } from './connections/types';
 import type { ConnectionsDatabase, PuzzleEntry } from './db/types';
+import { describeComponent } from './scoring/format';
 import { PRODUCTION_CONFIG, PRODUCTION_MODEL } from './scoring/production';
 import { determineWinners } from './scoring/winners';
 
@@ -19,6 +20,8 @@ export type ProcessOutcome =
       isTie: boolean;
       /** True when this share's author is among the current winners and should be announced. */
       announce: boolean;
+      /** The sharer's own stored result and score, whether or not they are winning (or ignored). */
+      sharer: PuzzleEntry;
     };
 
 /** Rebuild the parts of a share the scoring needs from what was stored. */
@@ -64,7 +67,7 @@ export async function processShare(
   );
   if (!stored) return { status: 'duplicate' };
 
-  const { eligible, won, isTie } = await refreshOutcomes(share.puzzleNumber, db, ignoredIds);
+  const { entries, eligible, won, isTie } = await refreshOutcomes(share.puzzleNumber, db, ignoredIds);
 
   return {
     status: 'saved',
@@ -73,6 +76,7 @@ export async function processShare(
     winners: eligible.filter((e) => won.has(e.discordId)),
     isTie,
     announce: won.has(author.id),
+    sharer: entries.find((e) => e.discordId === author.id)!,
   };
 }
 
@@ -84,7 +88,7 @@ export async function refreshOutcomes(
   puzzleNumber: number,
   db: ConnectionsDatabase,
   ignoredIds: Set<string>,
-): Promise<{ eligible: PuzzleEntry[]; won: Set<string>; isTie: boolean }> {
+): Promise<{ entries: PuzzleEntry[]; eligible: PuzzleEntry[]; won: Set<string>; isTie: boolean }> {
   const entries = await db.getPuzzleEntries(puzzleNumber);
   const eligible = entries.filter((e) => !ignoredIds.has(e.discordId));
   const { winners: winnerIds, isTie } = determineWinners(
@@ -98,20 +102,60 @@ export async function refreshOutcomes(
     puzzleNumber,
     entries.map((e) => ({ discordId: e.discordId, isWin: won.has(e.discordId) && !isTie, isTie: won.has(e.discordId) && isTie })),
   );
-  return { eligible, won, isTie };
+  return { entries, eligible, won, isTie };
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** The channel message for a saved outcome that should be announced. */
-export function formatAnnouncement(outcome: Extract<ProcessOutcome, { status: 'saved' }>, tagging: boolean): string {
-  const who = (e: PuzzleEntry) => (tagging ? `<@${e.discordId}>` : e.discordName);
-  const [first] = outcome.winners;
-  const names = outcome.winners.map(who).join(', ');
+/** Discord rejects messages over 2000 characters; leave room for a closing note. */
+const DISCORD_LIMIT = 2000;
+const FOOTER_RESERVE = 100;
 
-  if (outcome.winners.length > 1) {
-    return `Current Winners (tie) for Connections #${outcome.puzzleNumber} with ${first!.dailyScore} points: ${names}`;
+type SavedOutcome = Extract<ProcessOutcome, { status: 'saved' }>;
+
+const summary = (e: PuzzleEntry) =>
+  `solved ${e.result.solvedOrder.length}/4, ${plural(e.result.mistakes + e.result.rainbows, 'mistake')}`;
+
+/** The score breakdown as bullet lines. */
+function breakdownLines(e: PuzzleEntry): string[] {
+  return PRODUCTION_MODEL.breakdown!(toShare(e), PRODUCTION_CONFIG).map((c) => `• ${describeComponent(c)}`);
+}
+
+const whoIs = (e: PuzzleEntry, tagging: boolean) => (tagging ? `<@${e.discordId}>` : e.discordName);
+
+/**
+ * The channel message for a share whose author is among the current winners:
+ * the winner line, then how each winner's score breaks down.
+ */
+export function formatAnnouncement(outcome: SavedOutcome, tagging: boolean): string {
+  const [first] = outcome.winners;
+  const names = outcome.winners.map((e) => whoIs(e, tagging)).join(', ');
+
+  if (outcome.winners.length === 1) {
+    return [
+      `Current Winner for Connections #${outcome.puzzleNumber} with ${first!.dailyScore} points (${summary(first!)}): ${names}`,
+      ...breakdownLines(first!),
+    ].join('\n');
   }
-  const { solvedOrder, mistakes, rainbows } = first!.result;
-  return `Current Winner for Connections #${outcome.puzzleNumber} with ${first!.dailyScore} points (solved ${solvedOrder.length}/4, ${plural(mistakes + rainbows, 'mistake')}): ${names}`;
+
+  let text = `Current Winners (tie) for Connections #${outcome.puzzleNumber} with ${first!.dailyScore} points: ${names}`;
+  let shown = 0;
+  for (const winner of outcome.winners) {
+    const block = [`${whoIs(winner, tagging)}: ${summary(winner)}`, ...breakdownLines(winner)].join('\n');
+    if ((text + '\n' + block).length > DISCORD_LIMIT - FOOTER_RESERVE) break;
+    text += '\n' + block;
+    shown++;
+  }
+  const left = outcome.winners.length - shown;
+  if (left > 0) text += `\n…and ${left} more tied winners (details left out to fit Discord's message limit)`;
+  return text.slice(0, DISCORD_LIMIT);
+}
+
+/** The reply to a share whose author is not currently winning: their result and how it was scored. */
+export function formatShareReply(outcome: SavedOutcome, tagging: boolean): string {
+  const { sharer } = outcome;
+  return [
+    `${whoIs(sharer, tagging)} Puzzle #${outcome.puzzleNumber}: ${sharer.dailyScore} points, ${summary(sharer)}`,
+    ...breakdownLines(sharer),
+  ].join('\n');
 }
