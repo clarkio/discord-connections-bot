@@ -75,7 +75,7 @@ describe('!standings', () => {
   test('ranks with the live scoring from the raw results, not from stored scores', async () => {
     const db = await memoryDb();
     for (const [id, name, rows, stale] of [['a', 'alice', NATURAL, -999], ['b', 'bob', [MISTAKE, ...NATURAL], 999]] as const) {
-      const s = makeShare(rows, 1000);
+      const s = makeShare([...rows], 1000);
       await db.upsertPlayer(id, name);
       await db.saveResult({ discordId: id, puzzleNumber: 1000, guessRows: s.guesses.map((g) => g.colors.join('')), solvedOrder: s.solvedOrder, mistakes: s.mistakes, rainbows: s.rainbows, failed: s.failed, postedAt: '2026-01-01T00:00:00.000Z' }, stale);
     }
