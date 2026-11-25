@@ -108,3 +108,11 @@ describe('!results', () => {
     expect(m.sent[0]).toContain('45 points');
   });
 });
+
+describe('the command list', () => {
+  test('includes !scoring', async () => {
+    const { COMMANDS } = await import('../commands');
+    expect(COMMANDS.has('scoring')).toBe(true);
+    expect([...COMMANDS.keys()].sort()).toEqual(['optin', 'optout', 'results', 'scoring']);
+  });
+});
