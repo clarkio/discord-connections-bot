@@ -3,13 +3,13 @@ import type { ScoringConfig } from './config';
 
 /** One line of a score explanation. The points of all components add up to the daily score. */
 export interface ScoreComponent {
-  label: 'categories' | 'mistakes' | 'rainbows' | 'order bonus' | 'position bonus' | 'clean game bonus';
+  label: 'categories' | 'groups' | 'mistakes' | 'rainbows' | 'order bonus' | 'position bonus' | 'rainbow grace' | 'clean game bonus';
   points: number;
   detail: string;
 }
 
 export interface ScoringModel {
-  id: 'B' | 'D' | 'P' | 'Q' | 'R';
+  id: 'B' | 'D' | 'P' | 'Q' | 'R' | 'S';
   /** True when the first key component is a numeric daily score (so margins and totals make sense). */
   scored: boolean;
   /** Higher keys rank better; compare with compareKeys. */
@@ -143,7 +143,31 @@ export const modelR: ScoringModel = {
   },
 };
 
-export const ALL_MODELS: ScoringModel[] = [modelB, modelD, modelP, modelQ, modelR];
+/**
+ * Model S, the live outcome scoring. Results rank by outcome (solved everything beats any failure;
+ * among failures, more groups solved), then fewer total mistakes (a rainbow guess is a mistake),
+ * then the position bonus, then the rainbow grace as the last tiebreak. The numbers are chosen so
+ * the score order is exactly that ranking: a mistake costs more than the largest position bonus
+ * plus the grace, and the grace is smaller than one position unit.
+ */
+export const modelS: ScoringModel = {
+  id: 'S',
+  scored: true,
+  rankKey(share, cfg) {
+    const o = cfg.outcome;
+    const mistakes = share.mistakes + share.rainbows;
+    const units = weightedPositionSteps(share.solvedOrder, o.stepWeights) + orderPairs(share.solvedOrder);
+    return [
+      o.groupPoints * share.solvedOrder.length -
+        o.mistakePenalty * mistakes +
+        o.positionUnit * units +
+        (share.rainbows > 0 ? o.rainbowGrace : 0) +
+        (mistakes === 0 ? o.cleanBonus : 0),
+    ];
+  },
+};
+
+export const ALL_MODELS: ScoringModel[] = [modelB, modelD, modelP, modelQ, modelR, modelS];
 
 /** Pick models by id from a comma-separated list or "all". With no value, the scored models D, P, Q and R. */
 export function resolveModels(value?: string): ScoringModel[] {
@@ -152,7 +176,7 @@ export function resolveModels(value?: string): ScoringModel[] {
   return value.split(',').map((raw) => {
     const id = raw.trim().toUpperCase();
     const model = ALL_MODELS.find((m) => m.id === id);
-    if (!model) throw new Error(`Unknown model "${raw.trim()}". Use B, D, P, Q, R or all.`);
+    if (!model) throw new Error(`Unknown model "${raw.trim()}". Use B, D, P, Q, R, S or all.`);
     return model;
   });
 }
@@ -235,6 +259,39 @@ modelQ.breakdown = (share, cfg) => {
         .map((m) => `${COLOR_SQUARE[m.color]} solved ${m.place}: ${plural(m.steps, 'step')} × ${cfg.positionStepWeights[m.color]} = ${m.steps * cfg.positionStepWeights[m.color]}`)
         .join('; ')}; ${plural(units, 'unit')} × ${cfg.weightedPositionBonusPerUnit}`,
     });
+  }
+  return parts;
+};
+
+modelS.breakdown = (share, cfg) => {
+  const o = cfg.outcome;
+  const mistakes = share.mistakes + share.rainbows;
+  const parts: ScoreComponent[] = [
+    {
+      label: 'groups',
+      points: o.groupPoints * share.solvedOrder.length,
+      detail: share.solvedOrder.map((c) => `${COLOR_SQUARE[c]}+${o.groupPoints}`).join(' ') || 'none solved',
+    },
+  ];
+  if (mistakes > 0) {
+    parts.push({ label: 'mistakes', points: -o.mistakePenalty * mistakes, detail: `${mistakes} × -${o.mistakePenalty}` });
+  }
+  const moved = stepsByCategory(share.solvedOrder);
+  const pairs = pairList(share.solvedOrder).length;
+  const units = moved.reduce((t, m) => t + m.steps * o.stepWeights[m.color], 0) + pairs;
+  if (units > 0) {
+    const detail = [
+      ...moved.filter((m) => o.stepWeights[m.color] > 0).map((m) => `${COLOR_SQUARE[m.color]} solved ${m.place}: ${plural(m.steps, 'step')} × ${o.stepWeights[m.color]} = ${m.steps * o.stepWeights[m.color]}`),
+      ...(pairs > 0 ? [`${plural(pairs, 'harder-before-easier pair')}`] : []),
+      `${plural(units, 'unit')} × ${o.positionUnit}`,
+    ].join('; ');
+    parts.push({ label: 'position bonus', points: units * o.positionUnit, detail });
+  }
+  if (share.rainbows > 0) {
+    parts.push({ label: 'rainbow grace', points: o.rainbowGrace, detail: 'a rainbow guess breaks ties' });
+  }
+  if (mistakes === 0) {
+    parts.push({ label: 'clean game bonus', points: o.cleanBonus, detail: 'no mistakes' });
   }
   return parts;
 };

@@ -13,7 +13,7 @@ import { groupByPuzzle, type HistoryRecord } from '../src/analysis/history';
 import { formatExample, pickExamples } from '../src/analysis/examples';
 import { analyze, sweep, type Metrics } from '../src/analysis/metrics';
 import { DEFAULT_CONFIG } from '../src/scoring/config';
-import { modelB, modelD, modelP, modelQ, modelR, resolveModels } from '../src/scoring/models';
+import { modelB, modelD, modelP, modelQ, modelR, modelS, resolveModels } from '../src/scoring/models';
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
@@ -49,7 +49,7 @@ const row = (label: string, m: Metrics) => ({
 
 console.log(`${records.length} shares across ${groups.size} puzzles (metrics cover puzzles with 2+ players)\n`);
 console.log('Defaults (primary metric: single winner)');
-console.table([row('B ranked tuple', analyze(groups, modelB, DEFAULT_CONFIG)), row('D pair bonus 0.5', analyze(groups, modelD, DEFAULT_CONFIG)), row('D pair bonus 0.25', analyze(groups, modelD, { ...DEFAULT_CONFIG, orderBonusPerPair: 0.25 })), row('P position bonus 0.25', analyze(groups, modelP, DEFAULT_CONFIG)), row('Q weighted position 0.25', analyze(groups, modelQ, DEFAULT_CONFIG)), row('Q, weights 0-1-2-3', analyze(groups, modelQ, GENTLE)), row('R clean-game guard', analyze(groups, modelR, DEFAULT_CONFIG)), row('R, weights 0-1-2-3', analyze(groups, modelR, GENTLE))]);
+console.table([row('B ranked tuple', analyze(groups, modelB, DEFAULT_CONFIG)), row('D pair bonus 0.5', analyze(groups, modelD, DEFAULT_CONFIG)), row('D pair bonus 0.25', analyze(groups, modelD, { ...DEFAULT_CONFIG, orderBonusPerPair: 0.25 })), row('P position bonus 0.25', analyze(groups, modelP, DEFAULT_CONFIG)), row('Q weighted position 0.25', analyze(groups, modelQ, DEFAULT_CONFIG)), row('Q, weights 0-1-2-3', analyze(groups, modelQ, GENTLE)), row('R clean-game guard', analyze(groups, modelR, DEFAULT_CONFIG)), row('R, weights 0-1-2-3', analyze(groups, modelR, GENTLE)), row('S live outcome scoring', analyze(groups, modelS, DEFAULT_CONFIG))]);
 
 for (const exampleModel of exampleModels) {
   const examples = pickExamples(groups, exampleModel, exampleCfg, perKind, { solvedFirst });
@@ -65,7 +65,7 @@ for (const exampleModel of exampleModels) {
   }
 }
 
-for (const model of [modelB, modelD, modelP, modelQ, modelR]) {
+for (const model of [modelB, modelD, modelP, modelQ, modelR, modelS]) {
   console.log(`\nSensitivity sweep: model ${model.id}`);
   console.table(sweep(groups, model).map((r) => row(r.label, r.metrics)));
 }

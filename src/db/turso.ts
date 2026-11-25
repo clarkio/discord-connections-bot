@@ -155,6 +155,25 @@ export class TursoDatabase implements ConnectionsDatabase {
     await this.db.batch([first!, ...rest]);
   }
 
+  async getAllPuzzleNumbers(): Promise<number[]> {
+    const rows = await this.db
+      .selectDistinct({ n: resultsTable.puzzleNumber })
+      .from(resultsTable)
+      .orderBy(asc(resultsTable.puzzleNumber));
+    return rows.map((r) => r.n);
+  }
+
+  async setDailyScores(puzzleNumber: number, scores: { discordId: string; dailyScore: number }[]): Promise<void> {
+    if (scores.length === 0) return;
+    const [first, ...rest] = scores.map((s) =>
+      this.db
+        .update(scoresTable)
+        .set({ dailyScore: s.dailyScore })
+        .where(and(eq(scoresTable.discordId, s.discordId), eq(scoresTable.puzzleNumber, puzzleNumber))),
+    );
+    await this.db.batch([first!, ...rest]);
+  }
+
   async getPlayerEntries(discordId: string): Promise<PuzzleEntry[]> {
     const rows = await this.entryQuery().where(eq(resultsTable.discordId, discordId)).orderBy(desc(resultsTable.puzzleNumber));
     return rows.map((r) => this.toEntry(r));
