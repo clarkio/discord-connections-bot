@@ -36,9 +36,25 @@ _Avoid_: Spread, wildcard
 The sequence in which a player solved the categories. Solving a harder category before an easier one is the mark of a strong player.
 _Avoid_: Path, ordering
 
-**Failed puzzle**:
-A puzzle the player ended with four mistakes before solving every category. It still takes part in ranking.
-_Avoid_: Loss, X
+**Outcome**:
+How a puzzle ended for a player, from worst to best: completely failed, partially failed, solved with mistakes, clean game. Among clean games, solving harder categories earlier is better.
+_Avoid_: Result (that is the Share), grade
+
+**Completely failed**:
+An outcome where the player used all four mistakes and solved no category. The lowest outcome.
+_Avoid_: Failed (on its own), loss, X
+
+**Partially failed**:
+An outcome where the player used all four mistakes after solving one or two categories. Three is not possible, because the fourth category is then solved automatically. Better than completely failed, and the more categories solved the better.
+_Avoid_: Failed (on its own), near miss
+
+**Solved with mistakes**:
+An outcome where the player solved every category after making one to three mistakes. Better than any failed outcome.
+_Avoid_: Imperfect, dirty
+
+**Clean game**:
+An outcome where the player solved every category with no mistakes at all, rainbow guesses included. The best outcome; solving harder categories earlier ranks clean games against each other, and the perfect reverse (purple, blue, green, yellow) is the best possible.
+_Avoid_: Perfect game, flawless
 
 ## Scoring
 
@@ -63,7 +79,7 @@ The player (or players) ranked first on a puzzle at the moment a share is proces
 _Avoid_: Champion, top scorer
 
 **Tie**:
-Two or more players ranked equally first on a puzzle, meaning their results score identically under the scoring model. Failed puzzles are not special: if everyone ends on the same score, that is a tie like any other.
+Two or more players ranked equally first on a puzzle, meaning their results score identically under the scoring model. No outcome is special: if everyone ends on the same score, even all completely failed, that is a tie like any other.
 _Avoid_: Draw
 
 ## Players
