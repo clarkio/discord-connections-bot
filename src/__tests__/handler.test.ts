@@ -27,7 +27,7 @@ describe('handleMessage', () => {
     const m = fakeMessage(shareText(NATURAL));
     await handleMessage(m, c);
     expect(m.reactions).toEqual(['✅']);
-    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): <@u1>\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)']);
+    expect(m.sent).toEqual(['Current Winner for Connections #1000 with 45 points (solved 4/4, 0 mistakes): <@u1>\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• clean game bonus +5 (no mistakes)']);
     expect(await c.db.hasResult('u1', 1000)).toBe(true);
   });
 
@@ -38,7 +38,7 @@ describe('handleMessage', () => {
     await handleMessage(m, c);
     expect(m.reactions).toEqual(['✅']);
     expect(m.sent).toEqual([
-      '<@u2> Puzzle #1000: 9 points, solved 4/4, 1 mistake\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• mistakes -1 (1 × -1)',
+      '<@u2> Puzzle #1000: 30 points, solved 4/4, 1 mistake\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• mistakes -10 (1 × -10)',
     ]);
   });
 
@@ -65,7 +65,7 @@ describe('handleMessage', () => {
     const m = fakeMessage(shareText(NATURAL));
     await handleMessage(m, c);
     expect(m.reactions).toEqual(['✅']);
-    expect(m.sent).toEqual(['<@u1> Puzzle #1000: 14 points, solved 4/4, 0 mistakes\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)']);
+    expect(m.sent).toEqual(['<@u1> Puzzle #1000: 45 points, solved 4/4, 0 mistakes\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• clean game bonus +5 (no mistakes)']);
   });
 
   test('announcements use names when tagging is off', async () => {
@@ -172,7 +172,7 @@ describe('rainbow reaction', () => {
     const m = fakeMessage(shareText([RAINBOW, ...NATURAL]));
     await handleMessage(m, await ctx());
     expect(m.sent).toEqual([
-      'Current Winner for Connections #1000 with 9.5 points (solved 4/4, 1 mistake): <@u1>\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• rainbows -0.5 (1 × -0.5)',
+      'Current Winner for Connections #1000 with 30.25 points (solved 4/4, 1 mistake): <@u1>\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• mistakes -10 (1 × -10)\n• rainbow grace +0.25 (a rainbow guess breaks ties)',
     ]);
   });
 
@@ -223,7 +223,7 @@ describe('one message per counted share', () => {
     await handleMessage(fakeMessage(shareText(NATURAL), { id: 'u1' }), c);
     const m = fakeMessage(shareText([MISTAKE, ...NATURAL]), { id: 'u2', name: 'bob' });
     await handleMessage(m, c);
-    expect(m.sent[0]).toMatch(/^bob Puzzle #1000: 9 points/);
+    expect(m.sent[0]).toMatch(/^bob Puzzle #1000: 30 points/);
   });
 
   test('a duplicate share gets no reply', async () => {

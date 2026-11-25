@@ -54,15 +54,15 @@ describe('!results', () => {
 
   test('defaults to the latest puzzle and adds lifetime totals', async () => {
     const db = await memoryDb();
-    await run(db, 'u1', NATURAL, 999); // 14, wins
-    await run(db, 'u1', [MISTAKE, ...NATURAL], 1000); // 9, wins (alone)
+    await run(db, 'u1', NATURAL, 999); // 45, wins
+    await run(db, 'u1', [MISTAKE, ...NATURAL], 1000); // 30, wins (alone)
     const m = fakeMessage('!results', { id: 'u1' });
     await resultsCommand.execute(m, [], { db });
     expect(m.sent[0]).toContain('Puzzle #1000');
-    expect(m.sent[0]).toContain('9 points');
+    expect(m.sent[0]).toContain('30 points');
     expect(m.sent[0]).toContain('solved 4/4');
     expect(m.sent[0]).toContain('1 mistake');
-    expect(m.sent[0]).toContain('Lifetime: 2 puzzles, 23 points (11.5 average), 2 wins, 0 ties');
+    expect(m.sent[0]).toContain('Lifetime: 2 puzzles, 75 points (37.5 average), 2 wins, 0 ties');
   });
 
   test('a puzzle number picks that puzzle and shows how it ended', async () => {
@@ -72,7 +72,7 @@ describe('!results', () => {
     const m = fakeMessage('!results 999', { id: 'u1' });
     await resultsCommand.execute(m, ['999'], { db });
     expect(m.sent[0]).toContain('Puzzle #999');
-    expect(m.sent[0]).toContain('14 points');
+    expect(m.sent[0]).toContain('45 points');
     expect(m.sent[0]).toMatch(/tied for the win/);
   });
 
@@ -105,6 +105,6 @@ describe('!results', () => {
     expect((await db.getPlayer('u1'))!.isOptedIn).toBe(false);
     const m = fakeMessage('!results', { id: 'u1' });
     await resultsCommand.execute(m, [], { db });
-    expect(m.sent[0]).toContain('14 points');
+    expect(m.sent[0]).toContain('45 points');
   });
 });
