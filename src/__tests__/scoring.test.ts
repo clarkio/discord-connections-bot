@@ -271,7 +271,7 @@ describe('resolveModels: choosing models from a command-line value', () => {
     expect(ids('Q, d')).toEqual(['Q', 'D']);
   });
   test('"all" means every model', () => {
-    expect(ids('all')).toEqual(['B', 'D', 'P', 'Q', 'R']);
+    expect(ids('all')).toEqual(['B', 'D', 'P', 'Q', 'R', 'S']);
   });
   test('an unknown model is rejected with a helpful message', () => {
     expect(() => resolveModels('X')).toThrow(/unknown model "X"/i);

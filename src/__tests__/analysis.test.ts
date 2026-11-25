@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { buildRecords, groupByPuzzle, type HistoryRecord } from '../analysis/history';
 import { ORDER_BONUS_GRID, POSITION_BONUS_GRID, RAINBOW_PENALTY_GRID, WEIGHTED_UNIT_GRID, STEP_WEIGHT_SCHEMES, analyze, sweep } from '../analysis/metrics';
 import { DEFAULT_CONFIG } from '../scoring/config';
-import { modelB, modelD, modelP, modelQ, modelR } from '../scoring/models';
+import { modelB, modelD, modelP, modelQ, modelR, modelS } from '../scoring/models';
 
 const PERFECT = ['🟨🟨🟨🟨', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'];
 const ONE_MISTAKE = ['🟨🟨🟨🟩', ...PERFECT];
@@ -143,5 +143,19 @@ describe('model R in the analysis', () => {
   test('sweeps the same grid as model Q', () => {
     expect(sweep(groups, modelR)).toHaveLength(sweep(groups, modelQ).length);
     expect(sweep(groups, modelR)[0]!.label).toContain('weightedUnit');
+  });
+});
+
+describe('model S in the analysis', () => {
+  const groups = groupByPuzzle([rec('a', 1, PERFECT), rec('b', 1, ONE_MISTAKE)]);
+
+  test('reports a margin, because model S has a numeric score', () => {
+    expect(analyze(groups, modelS, DEFAULT_CONFIG).avgMargin).toBe(15); // 45 against 30
+  });
+
+  test('has no parameter grid: its sweep is the single production setting', () => {
+    const rows = sweep(groups, modelS);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.label).toBe('production settings');
   });
 });
