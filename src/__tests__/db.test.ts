@@ -142,3 +142,30 @@ describe('connecting to a file database', () => {
     }
   });
 });
+
+describe('for rescoring', () => {
+  test('getAllPuzzleNumbers lists each stored puzzle once, ascending', async () => {
+    const db = await memoryDb();
+    for (const id of ['u1', 'u2']) await db.upsertPlayer(id, id);
+    for (const n of [1002, 1000, 1001]) await db.saveResult(result('u1', n), 1);
+    await db.saveResult(result('u2', 1000), 1);
+    expect(await db.getAllPuzzleNumbers()).toEqual([1000, 1001, 1002]);
+    expect(await (await memoryDb()).getAllPuzzleNumbers()).toEqual([]);
+  });
+
+  test('setDailyScores changes only the scores named, for that puzzle, and nothing else', async () => {
+    const db = await memoryDb();
+    for (const id of ['u1', 'u2']) {
+      await db.upsertPlayer(id, id);
+      await db.saveResult(result(id, 1000), 9);
+      await db.saveResult(result(id, 1001), 9);
+    }
+    await db.setOutcomes(1000, [{ discordId: 'u1', isWin: true, isTie: false }]);
+    await db.setDailyScores(1000, [{ discordId: 'u1', dailyScore: 45 }]);
+    const p1000 = Object.fromEntries((await db.getPuzzleEntries(1000)).map((e) => [e.discordId, e.dailyScore]));
+    expect(p1000).toEqual({ u1: 45, u2: 9 });
+    expect((await db.getPuzzleEntries(1001)).map((e) => e.dailyScore)).toEqual([9, 9]);
+    expect((await db.getPuzzleEntries(1000)).find((e) => e.discordId === 'u1')!.isWin).toBe(true);
+    await db.setDailyScores(1000, []); // nothing to do is fine
+  });
+});

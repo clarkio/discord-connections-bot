@@ -21,7 +21,20 @@ currently winning that puzzle whenever the sharer is among the winners (a tie is
   mistakes and score breakdown. Ignored players get the reply, never the announcement.
 - ✅ on a counted share, ❌ on a message that looks like a share but is impossible, nothing for a duplicate
   (the first share per player and puzzle counts; a first-ever share for an old puzzle is accepted).
-- Scoring is fixed to model **R**, with the settings in `src/scoring/production.ts`.
+- Scoring is fixed to model **S**, the outcome scoring, with the settings in `src/scoring/production.ts`.
+  Results rank by outcome (completely failed < partially failed < solved with mistakes < clean game), then fewer
+  mistakes (a rainbow guess is a mistake), then the position bonus, then the rainbow grace as the last tiebreak:
+
+  ```
+  score = 10 × groups solved − 10 × mistakes + 0.5 × position units
+          + 0.25 if any rainbow guess + 5 if no mistakes at all
+  ```
+
+  Position units: for each group solved ahead of its natural place (yellow 1st, green 2nd, blue 3rd, purple 4th),
+  the places gained weighted yellow 0, green 1, blue 2, purple 3, plus 1 for every pair where a harder group was
+  solved before an easier one. The perfect reverse (purple, blue, green, yellow) is the highest possible score
+  (53.5), a completely failed game with no rainbow guess the lowest (−40). The score order is exactly the ranking,
+  which `src/__tests__/outcome-model.test.ts` checks over every possible result.
 - Commands: `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
   data, results are recorded either way), `!results [puzzle]` (your result plus lifetime totals).
 - `IGNORED_USER_IDS` players are recorded but never count toward winners or ties. `USER_TAGGING_ENABLED=true`
@@ -45,6 +58,20 @@ Change the schema in `src/db/schema.ts` and run `bun run db:generate` to produce
 - `src/scoring/`: three candidate models: **B** (ranked tuple), **D** (weighted points with a bonus per harder-before-easier pair) and **P** (weighted points with a bonus for solving a category ahead of its natural position: purple 1st earns most) and **Q** (P with each place worth more units for harder categories, in whole multiples of 0.25, so it separates more solve orders) and **R** (Q plus a whole-number bonus for a game with no mistakes, sized so a clean game always beats any game with a mistake).
   Every weight is in `src/scoring/config.ts`.
 - `src/analysis/` and `scripts/`: export a channel's history, then compare the models.
+
+## Rescoring stored results
+
+After a change to the scoring, recompute every stored daily score and win/tie flag from the raw results already in
+the database. No Discord access is needed.
+
+```bash
+TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... bun run history:rescore           # dry run
+TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... bun run history:rescore --apply   # write
+```
+
+The dry run reports how many scores change, how many puzzles get a different winner or tie, and the single-winner
+and tie rates before and after. Set `IGNORED_USER_IDS` the same as on the bot. Back up the database before
+`--apply`; running it again changes nothing.
 
 ## Loading past results into the database
 

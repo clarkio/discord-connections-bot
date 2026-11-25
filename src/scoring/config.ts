@@ -1,5 +1,21 @@
 import type { Color } from '../connections/types';
 
+/** Settings for model S, the outcome scoring the live bot uses. */
+export interface OutcomeConfig {
+  /** Points for each group solved. */
+  groupPoints: number;
+  /** Points lost per mistake; a rainbow guess is a mistake like any other. */
+  mistakePenalty: number;
+  /** Points per position unit. Larger than the rainbow grace so a better solve order always outranks it. */
+  positionUnit: number;
+  /** Position units earned per place a group was solved ahead of its natural place, by the group that moved up. */
+  stepWeights: Record<Color, number>;
+  /** One-time points for a puzzle with any rainbow guess; the last tiebreak, smaller than one position unit. */
+  rainbowGrace: number;
+  /** Extra points for solving with no mistakes at all. */
+  cleanBonus: number;
+}
+
 /** Every tunable weight lives here so the analysis can vary them. */
 export interface ScoringConfig {
   /** Model D: points for each solved category. */
@@ -22,6 +38,8 @@ export interface ScoringConfig {
   rainbowMistakeWeight: number;
   /** Model B: whether hardest-first solve order breaks otherwise-equal results. */
   orderTiebreak: boolean;
+  /** Model S: the live outcome scoring. */
+  outcome: OutcomeConfig;
 }
 
 export const DEFAULT_CONFIG: ScoringConfig = {
@@ -35,4 +53,12 @@ export const DEFAULT_CONFIG: ScoringConfig = {
   cleanGameBonus: 'auto',
   rainbowMistakeWeight: 0.5,
   orderTiebreak: true,
+  outcome: {
+    groupPoints: 10,
+    mistakePenalty: 10,
+    positionUnit: 0.5,
+    stepWeights: { Y: 0, G: 1, B: 2, P: 3 },
+    rainbowGrace: 0.25,
+    cleanBonus: 5,
+  },
 };

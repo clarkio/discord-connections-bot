@@ -25,7 +25,7 @@ export type ProcessOutcome =
     };
 
 /** Rebuild the parts of a share the scoring needs from what was stored. */
-function toShare(entry: PuzzleEntry): Share {
+export function toShare(entry: PuzzleEntry): Share {
   const { result } = entry;
   return {
     puzzleNumber: result.puzzleNumber,

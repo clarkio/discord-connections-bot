@@ -16,13 +16,13 @@ describe('processShare', () => {
     const out = await run(db, 'u1', NATURAL);
     expect(out.status).toBe('saved');
     if (out.status !== 'saved') throw new Error();
-    expect(out.dailyScore).toBe(14);
+    expect(out.dailyScore).toBe(45);
     expect(out.winners.map((w) => w.discordId)).toEqual(['u1']);
     expect(out.isTie).toBe(false);
     expect(out.announce).toBe(true);
 
     const [e] = await db.getPuzzleEntries(1000);
-    expect(e).toMatchObject({ dailyScore: 14, isWin: true, isTie: false });
+    expect(e).toMatchObject({ dailyScore: 45, isWin: true, isTie: false });
     expect(e!.result.guessRows).toEqual(['YYYY', 'GGGG', 'BBBB', 'PPPP']);
     expect(e!.result.postedAt).toBe(at.toISOString());
   });
@@ -74,7 +74,7 @@ describe('processShare', () => {
     expect(out.status).toBe('duplicate');
     const entries = await db.getPuzzleEntries(1000);
     expect(entries).toHaveLength(1);
-    expect(entries[0]!.dailyScore).toBe(14);
+    expect(entries[0]!.dailyScore).toBe(45);
   });
 
   test('a first-ever share for an older puzzle is accepted and decided within that puzzle only', async () => {
@@ -96,7 +96,7 @@ describe('processShare', () => {
     expect(out.winners.map((w) => w.discordId)).toEqual(['u1']);
     expect(out.announce).toBe(false);
     const entries = Object.fromEntries((await db.getPuzzleEntries(1000)).map((e) => [e.discordId, e]));
-    expect(entries['bot-pal']!.dailyScore).toBe(17.75);
+    expect(entries['bot-pal']!.dailyScore).toBe(53.5);
     expect(entries['bot-pal']).toMatchObject({ isWin: false, isTie: false });
     expect(entries.u1).toMatchObject({ isWin: true, isTie: false });
   });
@@ -141,7 +141,7 @@ describe('processShare outcome', () => {
     const db = await memoryDb();
     const out = await processShare(makeShare(NATURAL), author('u1', 'alice'), at, db, new Set(['u1']));
     if (out.status !== 'saved') throw new Error();
-    expect(out.sharer).toMatchObject({ discordId: 'u1', discordName: 'alice', dailyScore: 14 });
+    expect(out.sharer).toMatchObject({ discordId: 'u1', discordName: 'alice', dailyScore: 45 });
   });
 });
 
@@ -157,36 +157,36 @@ describe('formatAnnouncement', () => {
   test('single winner, tagged, with the score breakdown', async () => {
     const out = await outcomeFor([MISTAKE, ...NATURAL], NATURAL);
     expect(formatAnnouncement(out, true)).toBe(
-      'Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): <@u2>\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)',
+      'Current Winner for Connections #1000 with 45 points (solved 4/4, 0 mistakes): <@u2>\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• clean game bonus +5 (no mistakes)',
     );
   });
 
   test('single winner, names instead of tags', async () => {
     const out = await outcomeFor(NATURAL);
     expect(formatAnnouncement(out, false)).toBe(
-      'Current Winner for Connections #1000 with 14 points (solved 4/4, 0 mistakes): u1\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)',
+      'Current Winner for Connections #1000 with 45 points (solved 4/4, 0 mistakes): u1\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• clean game bonus +5 (no mistakes)',
     );
   });
 
   test('a tie names everyone, then gives each winner their own details', async () => {
     const out = await outcomeFor(NATURAL, NATURAL);
     expect(formatAnnouncement(out, true)).toBe(
-      'Current Winners (tie) for Connections #1000 with 14 points: <@u1>, <@u2>\n' +
-        '<@u1>: solved 4/4, 0 mistakes\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)\n' +
-        '<@u2>: solved 4/4, 0 mistakes\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• clean game bonus +4 (no mistakes)',
+      'Current Winners (tie) for Connections #1000 with 45 points: <@u1>, <@u2>\n' +
+        '<@u1>: solved 4/4, 0 mistakes\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• clean game bonus +5 (no mistakes)\n' +
+        '<@u2>: solved 4/4, 0 mistakes\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• clean game bonus +5 (no mistakes)',
     );
   });
 
   test('every tied winner gets their own breakdown lines', async () => {
     const out = await outcomeFor([P, B, G, Y], [P, B, G, Y]);
     const text = formatAnnouncement(out, true);
-    expect(text.match(/• position bonus \+3\.75/g)).toHaveLength(2);
+    expect(text.match(/• position bonus \+8\.5/g)).toHaveLength(2);
   });
 
   test('a failed winner says how far they got, with singular and plural wording', async () => {
     const out = await outcomeFor([Y, MISTAKE, MISTAKE, MISTAKE, MISTAKE]);
     expect(formatAnnouncement(out, true)).toBe(
-      'Current Winner for Connections #1000 with -3 points (solved 1/4, 4 mistakes): <@u1>\n• categories +1 (🟨+1)\n• mistakes -4 (4 × -1)',
+      'Current Winner for Connections #1000 with -30 points (solved 1/4, 4 mistakes): <@u1>\n• groups +10 (🟨+10)\n• mistakes -40 (4 × -10)',
     );
     const one = await outcomeFor([MISTAKE, ...NATURAL]);
     expect(formatAnnouncement(one, true)).toContain('1 mistake):');
@@ -198,7 +198,7 @@ describe('formatAnnouncement', () => {
     expect(text.length).toBeLessThanOrEqual(2000);
     for (let i = 1; i <= 15; i++) expect(text).toContain(`<@u${i}>`);
     expect(text).toMatch(/and \d+ more tied winners/);
-    expect(text.startsWith('Current Winners (tie) for Connections #1000 with 17.75 points:')).toBe(true);
+    expect(text.startsWith('Current Winners (tie) for Connections #1000 with 53.5 points:')).toBe(true);
     expect(text).toContain('<@u1>: solved 4/4, 0 mistakes');
   });
 });
@@ -207,7 +207,7 @@ describe('formatShareReply', () => {
   test('the sharer\'s puzzle, points, solved, mistakes and breakdown, with no lifetime stats', async () => {
     const out = await outcomeFor(NATURAL, [MISTAKE, ...NATURAL]);
     const text = formatShareReply(out, true);
-    expect(text).toBe('<@u2> Puzzle #1000: 9 points, solved 4/4, 1 mistake\n• categories +10 (🟨+1 🟩+2 🟦+3 🟪+4)\n• mistakes -1 (1 × -1)');
+    expect(text).toBe('<@u2> Puzzle #1000: 30 points, solved 4/4, 1 mistake\n• groups +40 (🟨+10 🟩+10 🟦+10 🟪+10)\n• mistakes -10 (1 × -10)');
     expect(text).not.toContain('Lifetime');
   });
 
@@ -219,15 +219,15 @@ describe('formatShareReply', () => {
   test('lists every scoring line, including rainbows, for a failed game', async () => {
     const out = await outcomeFor([RAINBOW, MISTAKE, MISTAKE, MISTAKE]);
     expect(formatShareReply(out, true)).toBe(
-      '<@u1> Puzzle #1000: -3.5 points, solved 0/4, 4 mistakes\n• categories +0 (none solved)\n• mistakes -3 (3 × -1)\n• rainbows -0.5 (1 × -0.5)',
+      '<@u1> Puzzle #1000: -39.75 points, solved 0/4, 4 mistakes\n• groups +0 (none solved)\n• mistakes -40 (4 × -10)\n• rainbow grace +0.25 (a rainbow guess breaks ties)',
     );
   });
 
   test('shows the position and clean game bonuses when earned', async () => {
     const out = await outcomeFor([P, B, G, Y]);
     const text = formatShareReply(out, true);
-    expect(text).toContain('• position bonus +3.75 (🟪 solved 1st: 3 steps × 4 = 12; 🟦 solved 2nd: 1 step × 3 = 3; 15 units × 0.25)');
-    expect(text).toContain('• clean game bonus +4 (no mistakes)');
+    expect(text).toContain('• position bonus +8.5 (🟪 solved 1st: 3 steps × 3 = 9; 🟦 solved 2nd: 1 step × 2 = 2; 6 harder-before-easier pairs; 17 units × 0.5)');
+    expect(text).toContain('• clean game bonus +5 (no mistakes)');
   });
 
   test('works for an ignored player, who is never a winner', async () => {
@@ -235,6 +235,6 @@ describe('formatShareReply', () => {
     await run(db, 'u1', NATURAL);
     const out = await run(db, 'ign', [MISTAKE, ...NATURAL], { ignored: new Set(['ign']) });
     if (out.status !== 'saved') throw new Error();
-    expect(formatShareReply(out, true).startsWith('<@ign> Puzzle #1000: 9 points')).toBe(true);
+    expect(formatShareReply(out, true).startsWith('<@ign> Puzzle #1000: 30 points')).toBe(true);
   });
 });

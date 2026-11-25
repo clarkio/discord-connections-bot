@@ -57,6 +57,10 @@ export interface ConnectionsDatabase {
   setOutcomes(puzzleNumber: number, outcomes: Outcome[]): Promise<void>;
   /** A player's history, newest puzzle first, whether or not they are opted in. */
   getPlayerEntries(discordId: string): Promise<PuzzleEntry[]>;
+  /** Every puzzle number that has at least one stored result, ascending. */
+  getAllPuzzleNumbers(): Promise<number[]>;
+  /** Replace the stored daily score of the named players for one puzzle. Touches nothing else. */
+  setDailyScores(puzzleNumber: number, scores: { discordId: string; dailyScore: number }[]): Promise<void>;
   /** Public data: opted-in players only. */
   getPublicLeaderboard(): Promise<LeaderboardRow[]>;
 }

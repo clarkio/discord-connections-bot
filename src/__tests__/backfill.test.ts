@@ -28,8 +28,8 @@ describe('backfillHistory', () => {
       db, none, { apply: true },
     );
     expect(summary).toMatchObject({ applied: true, inserted: 4, puzzles: 2, players: 2, duplicates: 0, alreadyStored: 0 });
-    expect(await flags(db, 1000)).toEqual({ u1: [14, true, false], u2: [9, false, false] });
-    expect(await flags(db, 1001)).toEqual({ u1: [14, false, true], u2: [14, false, true] });
+    expect(await flags(db, 1000)).toEqual({ u1: [45, true, false], u2: [30, false, false] });
+    expect(await flags(db, 1001)).toEqual({ u1: [45, false, true], u2: [45, false, true] });
     expect((await db.getPlayer('u1'))!.discordName).toBe('name-u1');
   });
 
@@ -49,7 +49,7 @@ describe('backfillHistory', () => {
       db, none, { apply: true },
     );
     expect(summary).toMatchObject({ inserted: 1, duplicates: 1 });
-    expect((await flags(db, 1000)).u1![0]).toBe(14);
+    expect((await flags(db, 1000)).u1![0]).toBe(45);
   });
 
   test('skips bots, chatter and impossible shares, and counts them', async () => {
@@ -70,7 +70,7 @@ describe('backfillHistory', () => {
   test('ignored players are stored but never win or tie', async () => {
     const db = await memoryDb();
     await backfillHistory([msg('u1', [MISTAKE, ...NATURAL], 1000, 1), msg('ign', [P, B, G, Y], 1000, 2)], db, new Set(['ign']), { apply: true });
-    expect(await flags(db, 1000)).toEqual({ u1: [9, true, false], ign: [17.75, false, false] });
+    expect(await flags(db, 1000)).toEqual({ u1: [30, true, false], ign: [53.5, false, false] });
   });
 
   test('running it twice stores nothing new the second time', async () => {
@@ -79,7 +79,7 @@ describe('backfillHistory', () => {
     await backfillHistory(messages, db, none, { apply: true });
     const again = await backfillHistory(messages, db, none, { apply: true });
     expect(again).toMatchObject({ inserted: 0, alreadyStored: 2 });
-    expect(await flags(db, 1000)).toEqual({ u1: [14, false, true], u2: [14, false, true] });
+    expect(await flags(db, 1000)).toEqual({ u1: [45, false, true], u2: [45, false, true] });
   });
 
   test('never overwrites a result the live bot already stored, and counts it with the new ones', async () => {
@@ -87,7 +87,7 @@ describe('backfillHistory', () => {
     await processShare(makeShare([MISTAKE, ...NATURAL], 1000), { id: 'u1', username: 'live-name' }, at(500), db, none);
     const summary = await backfillHistory([msg('u1', NATURAL, 1000, 1), msg('u2', [MISTAKE, ...NATURAL], 1000, 2)], db, none, { apply: true });
     expect(summary).toMatchObject({ inserted: 1, alreadyStored: 1 });
-    expect(await flags(db, 1000)).toEqual({ u1: [9, false, true], u2: [9, false, true] });
+    expect(await flags(db, 1000)).toEqual({ u1: [30, false, true], u2: [30, false, true] });
   });
 
   test('leaves a player\'s opt-in alone', async () => {
@@ -108,7 +108,7 @@ describe('backfillHistory', () => {
     expect(summary).toMatchObject({ applied: false, inserted: 2, alreadyStored: 1, puzzles: 2, players: 3 });
     expect(await db.getPuzzleEntries(1001)).toEqual([]);
     expect(await db.getPlayer('u2')).toBeUndefined();
-    expect(await flags(db, 1000)).toEqual({ u1: [14, true, false] }); // untouched
+    expect(await flags(db, 1000)).toEqual({ u1: [45, true, false] }); // untouched
   });
 
   test('reports progress through a callback, one call per puzzle', async () => {

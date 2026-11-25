@@ -29,7 +29,7 @@ A guess that is not a solved category. Four mistakes end the puzzle as a failure
 _Avoid_: Miss, strike, wrong guess
 
 **Rainbow guess**:
-A mistake whose four squares are four different colours, one word from each category. It is rare, and is treated more kindly than an ordinary mistake.
+A mistake whose four squares are four different colours, one word from each category. It is rare. It counts as a mistake like any other, but earns a small rainbow grace.
 _Avoid_: Spread, wildcard
 
 **Solve order**:
@@ -37,7 +37,7 @@ The sequence in which a player solved the categories. Solving a harder category 
 _Avoid_: Path, ordering
 
 **Outcome**:
-How a puzzle ended for a player, from worst to best: completely failed, partially failed, solved with mistakes, clean game. Among clean games, solving harder categories earlier is better.
+How a puzzle ended for a player, from worst to best: completely failed, partially failed, solved with mistakes, clean game. Within an outcome, fewer mistakes rank higher, then the position bonus, then the rainbow grace.
 _Avoid_: Result (that is the Share), grade
 
 **Completely failed**:
@@ -67,11 +67,15 @@ The number a scoring model gives one player's share for one puzzle.
 _Avoid_: Points, rating
 
 **Position bonus**:
-Extra daily score for each category solved earlier than its natural place (yellow first, green second, blue third, purple fourth), worth more the harder the category. Solving purple first earns the most.
+Extra daily score for solving harder categories earlier: for each category solved ahead of its natural place (yellow first, green second, blue third, purple fourth), worth more the harder the category, and for each pair where a harder category was solved before an easier one. It only decides between results with the same outcome and the same number of mistakes, and the perfect reverse (purple, blue, green, yellow) earns the most.
 _Avoid_: Order bonus, speed bonus, streak
 
+**Rainbow grace**:
+A small one-time reward for a puzzle with any rainbow guess, however many there were. It is the last tiebreak: it only separates results that are equal in outcome, mistakes and position bonus, and a better solve order always outranks it.
+_Avoid_: Rainbow bonus, rainbow penalty
+
 **Clean game bonus**:
-Extra daily score for a puzzle solved with no mistakes at all, large enough that a clean game always outscores any game with a mistake.
+Extra daily score for a puzzle solved with no mistakes at all, so a clean game stands clearly ahead of any game with a mistake.
 _Avoid_: Perfect bonus, flawless bonus
 
 **Winner**:
