@@ -17,7 +17,7 @@ describe('!scoring', () => {
 
   test('sends the rules and then the worked example, each within Discord\'s 2000-character limit', async () => {
     const m = fakeMessage('!scoring');
-    await scoringCommand.execute(m, [], { db: await memoryDb() });
+    await scoringCommand.execute(m, [], { db: await memoryDb(), ignoredIds: new Set() });
     expect(m.sent).toHaveLength(2);
     expect(m.sent).toEqual([rules!, example!]);
     for (const text of m.sent) expect(text.length).toBeLessThanOrEqual(2000);

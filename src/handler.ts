@@ -77,7 +77,7 @@ async function handleCommand(message: ChatMessage, ctx: HandlerContext): Promise
       await message.channel.send(`Unknown command: ${name}`);
       return;
     }
-    await command.execute(message, args, { db: ctx.db });
+    await command.execute(message, args, { db: ctx.db, ignoredIds: ctx.ignoredIds });
   } catch (error) {
     console.error(error);
     await message.channel.send('There was an error executing that command.');

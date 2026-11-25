@@ -11,7 +11,7 @@ describe('!optin and !optout', () => {
   test('opting in works for a player who has not shared yet, and says so', async () => {
     const db = await memoryDb();
     const m = fakeMessage('!optin', { id: 'u1', name: 'alice' });
-    await optInCommand.execute(m, [], { db });
+    await optInCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toContain('<@u1>');
     expect(m.sent[0]).toMatch(/successfully opted in/);
     expect((await db.getPlayer('u1'))!.isOptedIn).toBe(true);
@@ -19,21 +19,21 @@ describe('!optin and !optout', () => {
 
   test('opting in twice says they already had', async () => {
     const db = await memoryDb();
-    await optInCommand.execute(fakeMessage('!optin', { id: 'u1' }), [], { db });
+    await optInCommand.execute(fakeMessage('!optin', { id: 'u1' }), [], { db, ignoredIds: new Set() });
     const m = fakeMessage('!optin', { id: 'u1' });
-    await optInCommand.execute(m, [], { db });
+    await optInCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toMatch(/already opted in/);
   });
 
   test('opting out reverses it, and repeating says they already had', async () => {
     const db = await memoryDb();
-    await optInCommand.execute(fakeMessage('!optin', { id: 'u1' }), [], { db });
+    await optInCommand.execute(fakeMessage('!optin', { id: 'u1' }), [], { db, ignoredIds: new Set() });
     const m = fakeMessage('!optout', { id: 'u1' });
-    await optOutCommand.execute(m, [], { db });
+    await optOutCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toMatch(/successfully opted out/);
     expect((await db.getPlayer('u1'))!.isOptedIn).toBe(false);
     const again = fakeMessage('!optout', { id: 'u1' });
-    await optOutCommand.execute(again, [], { db });
+    await optOutCommand.execute(again, [], { db, ignoredIds: new Set() });
     expect(again.sent[0]).toMatch(/already opted out/);
   });
 
@@ -48,7 +48,7 @@ describe('!results', () => {
   test('with no history', async () => {
     const db = await memoryDb();
     const m = fakeMessage('!results', { id: 'u1' });
-    await resultsCommand.execute(m, [], { db });
+    await resultsCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent).toEqual(['<@u1> no Connections results found yet.']);
   });
 
@@ -57,7 +57,7 @@ describe('!results', () => {
     await run(db, 'u1', NATURAL, 999); // 45, wins
     await run(db, 'u1', [MISTAKE, ...NATURAL], 1000); // 30, wins (alone)
     const m = fakeMessage('!results', { id: 'u1' });
-    await resultsCommand.execute(m, [], { db });
+    await resultsCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toContain('Puzzle #1000');
     expect(m.sent[0]).toContain('30 points');
     expect(m.sent[0]).toContain('solved 4/4');
@@ -70,7 +70,7 @@ describe('!results', () => {
     await run(db, 'u1', NATURAL, 999);
     await run(db, 'u2', NATURAL, 999);
     const m = fakeMessage('!results 999', { id: 'u1' });
-    await resultsCommand.execute(m, ['999'], { db });
+    await resultsCommand.execute(m, ['999'], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toContain('Puzzle #999');
     expect(m.sent[0]).toContain('45 points');
     expect(m.sent[0]).toMatch(/tied for the win/);
@@ -81,7 +81,7 @@ describe('!results', () => {
     await run(db, 'u1', NATURAL);
     await run(db, 'u2', [P, B, G, Y]);
     const m = fakeMessage('!results', { id: 'u1' });
-    await resultsCommand.execute(m, [], { db });
+    await resultsCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent[0]).not.toMatch(/won|tied/);
   });
 
@@ -89,13 +89,13 @@ describe('!results', () => {
     const db = await memoryDb();
     await run(db, 'u1', NATURAL);
     const m = fakeMessage('!results 5', { id: 'u1' });
-    await resultsCommand.execute(m, ['5'], { db });
+    await resultsCommand.execute(m, ['5'], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toBe('<@u1> no result found for puzzle #5.');
   });
 
   test('a puzzle number that is not a number', async () => {
     const m = fakeMessage('!results abc', { id: 'u1' });
-    await resultsCommand.execute(m, ['abc'], { db: await memoryDb() });
+    await resultsCommand.execute(m, ['abc'], { db: await memoryDb(), ignoredIds: new Set() });
     expect(m.sent[0]).toContain('Usage');
   });
 
@@ -104,7 +104,7 @@ describe('!results', () => {
     await run(db, 'u1', NATURAL);
     expect((await db.getPlayer('u1'))!.isOptedIn).toBe(false);
     const m = fakeMessage('!results', { id: 'u1' });
-    await resultsCommand.execute(m, [], { db });
+    await resultsCommand.execute(m, [], { db, ignoredIds: new Set() });
     expect(m.sent[0]).toContain('45 points');
   });
 });
@@ -113,6 +113,6 @@ describe('the command list', () => {
   test('includes !scoring', async () => {
     const { COMMANDS } = await import('../commands');
     expect(COMMANDS.has('scoring')).toBe(true);
-    expect([...COMMANDS.keys()].sort()).toEqual(['optin', 'optout', 'results', 'scoring']);
+    expect([...COMMANDS.keys()].sort()).toEqual(['optin', 'optout', 'results', 'scoring', 'standings']);
   });
 });

@@ -8,5 +8,5 @@ export interface CommandMessage {
 export interface Command {
   name: string;
   description: string;
-  execute(message: CommandMessage, args: string[], ctx: { db: ConnectionsDatabase }): Promise<void>;
+  execute(message: CommandMessage, args: string[], ctx: { db: ConnectionsDatabase; ignoredIds: Set<string> }): Promise<void>;
 }
