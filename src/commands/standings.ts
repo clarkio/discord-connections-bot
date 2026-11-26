@@ -34,15 +34,15 @@ function chunk(lines: string[]): string[] {
 }
 
 /**
- * All-time standings, ranked by total points. This is the public leaderboard, so only players who
- * opted in appear; ignored players never compete and are left out.
+ * All-time standings, ranked by total points. It runs inside Discord, not on a public site, so every
+ * player is included whether or not they opted in; ignored players never compete and are left out.
  */
 async function allTimeStandings(message: CommandMessage, db: ConnectionsDatabase, ignoredIds: Set<string>): Promise<void> {
-  const rows = (await db.getPublicLeaderboard())
+  const rows = (await db.getAllTimeStandings())
     .filter((r) => !ignoredIds.has(r.discordId))
     .sort((a, b) => b.totalScore - a.totalScore || b.averageScore - a.averageScore || a.discordName.localeCompare(b.discordName));
   if (rows.length === 0) {
-    await message.channel.send('No players have opted in yet. Use !optin to appear in the all-time standings.');
+    await message.channel.send('No Connections results yet.');
     return;
   }
 
@@ -52,11 +52,8 @@ async function allTimeStandings(message: CommandMessage, db: ConnectionsDatabase
     return `${rank}. ${rank === 1 ? '🏆 ' : ''}${escapeMarkdown(r.discordName)} — ${tidy(r.totalScore)} points · ${plural(r.games, 'puzzle')} · ${tidy(r.averageScore)} average · ${plural(r.wins, 'win')} · ${plural(r.ties, 'tie')}`;
   });
 
-  const output = [`**All-time Connections standings** (${plural(rows.length, 'player')}, ranked by total points)`, ...lines, 'Only players who used !optin are shown.'];
-  // Tell a player who is missing why, and how to join.
-  const caller = await db.getPlayer(message.author.id);
-  if (!ignoredIds.has(message.author.id) && !caller?.isOptedIn) output.push('You are not in these standings yet: use !optin to join.');
-  for (const text of chunk(output)) await message.channel.send(text);
+  const header = `**All-time Connections standings** (${plural(rows.length, 'player')}, ranked by total points)`;
+  for (const text of chunk([header, ...lines])) await message.channel.send(text);
 }
 
 export const standingsCommand: Command = {

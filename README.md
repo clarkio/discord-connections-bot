@@ -44,7 +44,7 @@ currently winning that puzzle whenever the sharer is among the winners (a tie is
 - Commands: `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
   data, results are recorded either way), `!results [puzzle | first]` (your result plus lifetime totals; `first` finds your first puzzle for you), `!scoring` (how the scoring works, with a worked example), `!standings [puzzle | all]` (everyone's results for a puzzle,
   ranked, with scores and solve orders; the latest puzzle if no number is given; `all` is the all-time standings by
-  total points, which only lists players who used `!optin`).
+  total points, for every player, opted in or not).
 - `IGNORED_USER_IDS` players are recorded but never count toward winners or ties. `USER_TAGGING_ENABLED=true`
   (any letter case) mentions winners instead of printing names; if it is unset or anything else, names are printed.
 
