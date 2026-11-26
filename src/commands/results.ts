@@ -11,7 +11,8 @@ function describe(entry: PuzzleEntry): string {
 
 export const resultsCommand: Command = {
   name: 'results',
-  description: 'Get your own Connections results: !results [puzzle number | first]',
+  usage: '!results [puzzle number | first]',
+  description: 'Your result for a puzzle (the latest one if you give no number), or your first puzzle with `first`, plus your lifetime totals.',
   async execute(message, args, { db }) {
     const tag = `<@${message.author.id}>`;
     const arg = args[0];

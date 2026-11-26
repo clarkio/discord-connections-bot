@@ -70,7 +70,8 @@ export function scoringExplanation(): [string, string] {
 
 export const scoringCommand: Command = {
   name: 'scoring',
-  description: 'Explain how Connections scoring works, with an example',
+  usage: '!scoring',
+  description: 'How the scoring works, with a worked example.',
   async execute(message) {
     for (const text of scoringExplanation()) await message.channel.send(text);
   },

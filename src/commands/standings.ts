@@ -58,7 +58,8 @@ async function allTimeStandings(message: CommandMessage, db: ConnectionsDatabase
 
 export const standingsCommand: Command = {
   name: 'standings',
-  description: "Compare everyone's results for a puzzle, or the all-time standings: !standings [puzzle number | all]",
+  usage: '!standings [puzzle number | all]',
+  description: "Everyone's results for a puzzle, ranked (the latest puzzle if you give no number), or `all` for the all-time standings.",
   async execute(message, args, { db, ignoredIds }) {
     const arg = args[0];
     if (arg?.toLowerCase() === 'all') {
