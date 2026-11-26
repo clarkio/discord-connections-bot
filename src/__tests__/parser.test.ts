@@ -163,9 +163,11 @@ describe('parseShare: the reason a share is impossible', () => {
   test('the same group solved twice', () => {
     expect(reason(['🟨🟨🟨🟨', '🟨🟨🟨🟨', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'])).toBe('the same colour group was solved twice');
   });
-  test('all four groups solved despite four mistakes', () => {
+  test('guesses after the fourth mistake, even if they would have finished the puzzle', () => {
     expect(reason(['🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', ...PERFECT])).toBe('there are guesses after the fourth mistake, but the game ends at four');
-    expect(reason([...PERFECT.slice(0, 3), '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩'])).toBe('all four groups are solved but four mistakes were also made, which the game does not allow');
+  });
+  test('all four groups solved but four mistakes made as well', () => {
+    expect(reason([...PERFECT, '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩'])).toBe('all four groups are solved but four mistakes were also made, which the game does not allow');
   });
   test('an unfinished puzzle', () => {
     expect(reason(['🟨🟨🟨🟨', '🟩🟩🟩🟩'])).toBe('the puzzle looks unfinished: fewer than four groups solved and fewer than four mistakes made');
