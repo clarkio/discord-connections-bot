@@ -11,12 +11,13 @@ function describe(entry: PuzzleEntry): string {
 
 export const resultsCommand: Command = {
   name: 'results',
-  description: 'Get your own Connections results: !results [puzzle number]',
+  description: 'Get your own Connections results: !results [puzzle number | first]',
   async execute(message, args, { db }) {
     const tag = `<@${message.author.id}>`;
     const arg = args[0];
-    if (arg !== undefined && !/^\d+$/.test(arg)) {
-      await message.channel.send(`${tag} Usage: !results [puzzle number]`);
+    const wantsFirst = arg?.toLowerCase() === 'first';
+    if (arg !== undefined && !wantsFirst && !/^\d+$/.test(arg)) {
+      await message.channel.send(`${tag} Usage: !results [puzzle number | first]`);
       return;
     }
 
@@ -26,7 +27,12 @@ export const resultsCommand: Command = {
       return;
     }
 
-    const wanted = arg === undefined ? entries[0] : entries.find((e) => e.result.puzzleNumber === Number(arg));
+    // "first" is the lowest puzzle number the player has a result for, even if they shared it later than others.
+    const wanted = wantsFirst
+      ? entries.reduce((first, e) => (e.result.puzzleNumber < first.result.puzzleNumber ? e : first))
+      : arg === undefined
+        ? entries[0]
+        : entries.find((e) => e.result.puzzleNumber === Number(arg));
     if (!wanted) {
       await message.channel.send(`${tag} no result found for puzzle #${arg}.`);
       return;
