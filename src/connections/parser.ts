@@ -17,8 +17,11 @@ function toSquares(line: string): string[] | null {
  * Returns null when the message does not look like a share at all, so the
  * caller can ignore it. Returns `invalid` when it looks like a share but the
  * result is impossible, so the caller can react with a failure marker.
+ * Discord spoiler markers (`||`) around any part of the share are ignored.
  */
-export function parseShare(text: string): ParseResult | null {
+export function parseShare(raw: string): ParseResult | null {
+  // A share hidden with Discord's spoiler feature arrives wrapped in `||`; the markers are not part of it.
+  const text = raw.replace(/\|\|/g, '');
   const header = HEADER.exec(text);
   if (!header) return null;
 

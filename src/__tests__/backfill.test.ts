@@ -52,6 +52,14 @@ describe('backfillHistory', () => {
     expect((await flags(db, 1000)).u1![0]).toBe(45);
   });
 
+  test('imports a share that was hidden in a spoiler', async () => {
+    const db = await memoryDb();
+    const spoilered = { ...msg('u1', NATURAL, 1000, 1), content: `I lost today\n||${shareText(NATURAL, 1000)}||` };
+    const summary = await backfillHistory([spoilered], db, none, { apply: true });
+    expect(summary).toMatchObject({ inserted: 1, notShares: 0 });
+    expect(await flags(db, 1000)).toEqual({ u1: [45, true, false] });
+  });
+
   test('skips bots, chatter and impossible shares, and counts them', async () => {
     const db = await memoryDb();
     const summary = await backfillHistory(
