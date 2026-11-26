@@ -204,7 +204,7 @@ describe('parseShare: text around the results is ignored', () => {
 
   test('text after the results is ignored, even text that mentions colours', () => {
     same(`${plain}\nthat purple one was sneaky\nsee you tomorrow`);
-    same(`${plain}\n\nhaha 🟪 was last for me`.replace('haha 🟪', 'haha purple'));
+    same(`${plain}\n\nhaha purple was last for me`);
   });
 
   test('text before the results is ignored, on its own line or on the Connections line', () => {
