@@ -32,11 +32,11 @@ export function parseShare(raw: string): ParseResult | null {
     .map(toSquares)
     .filter((r): r is string[] => r !== null);
 
-  if (rows.length === 0) return { status: 'invalid', reason: 'no guess rows' };
+  if (rows.length === 0) return { status: 'invalid', reason: 'the header is there but no rows of coloured squares follow it' };
 
   const guesses: Guess[] = [];
   for (const row of rows) {
-    if (row.length !== 4) return { status: 'invalid', reason: 'a guess row must have four squares' };
+    if (row.length !== 4) return { status: 'invalid', reason: 'a row does not have exactly four squares' };
     const colors = row.map((c) => SQUARES[c]!);
     const distinct = new Set(colors).size;
     if (distinct === 1) guesses.push({ colors, kind: 'solved', category: colors[0]! });
@@ -49,10 +49,10 @@ export function parseShare(raw: string): ParseResult | null {
   let rainbows = 0;
   for (const g of guesses) {
     if (mistakes + rainbows >= MAX_MISTAKES) {
-      return { status: 'invalid', reason: 'guess after the fourth mistake' };
+      return { status: 'invalid', reason: 'there are guesses after the fourth mistake, but the game ends at four' };
     }
     if (g.kind === 'solved') {
-      if (solvedOrder.includes(g.category!)) return { status: 'invalid', reason: 'category solved twice' };
+      if (solvedOrder.includes(g.category!)) return { status: 'invalid', reason: 'the same colour group was solved twice' };
       solvedOrder.push(g.category!);
     } else if (g.kind === 'rainbow') rainbows++;
     else mistakes++;
@@ -60,10 +60,10 @@ export function parseShare(raw: string): ParseResult | null {
 
   const failed = mistakes + rainbows === MAX_MISTAKES;
   if (failed && solvedOrder.length === CATEGORY_COUNT) {
-    return { status: 'invalid', reason: 'all categories solved despite four mistakes' };
+    return { status: 'invalid', reason: 'all four groups are solved but four mistakes were also made, which the game does not allow' };
   }
   if (!failed && solvedOrder.length < CATEGORY_COUNT) {
-    return { status: 'invalid', reason: 'unfinished puzzle' };
+    return { status: 'invalid', reason: 'the puzzle looks unfinished: fewer than four groups solved and fewer than four mistakes made' };
   }
 
   return { status: 'ok', share: { puzzleNumber, guesses, solvedOrder, mistakes, rainbows, failed } };

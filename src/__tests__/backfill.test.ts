@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { backfillHistory, type BackfillMessage } from '../backfill';
+import { backfillHistory, formatInvalidShares, type BackfillMessage } from '../backfill';
 import { processShare } from '../processor';
 import { MISTAKE, NATURAL, B, G, P, Y, makeShare, memoryDb, shareText } from './support';
 
@@ -124,5 +124,83 @@ describe('backfillHistory', () => {
     const seen: number[] = [];
     await backfillHistory([msg('u1', NATURAL, 1000, 1), msg('u1', NATURAL, 1001, 2)], db, none, { apply: true, onPuzzle: (n) => seen.push(n) });
     expect(seen).toEqual([1000, 1001]);
+  });
+});
+
+describe('impossible shares in the backfill', () => {
+  const UNFINISHED = 'Connections\nPuzzle #1000\n🟨🟨🟨🟨\n🟩🟩🟩🟩';
+  const bad = (over: Partial<BackfillMessage> = {}): BackfillMessage => ({
+    ...msg('u3', NATURAL, 1000, 4),
+    authorName: 'bad-author',
+    content: UNFINISHED,
+    url: 'https://discord.com/channels/1/2/3',
+    ...over,
+  });
+
+  test('lists each one with why, who, when, a link and the text, matching the count', async () => {
+    const db = await memoryDb();
+    const summary = await backfillHistory([msg('u1', NATURAL, 1000, 1), bad()], db, none, { apply: true });
+    expect(summary.invalid).toBe(1);
+    expect(summary.invalidShares).toEqual([
+      {
+        reason: 'the puzzle looks unfinished: fewer than four groups solved and fewer than four mistakes made',
+        authorName: 'bad-author',
+        postedAt: at(4).toISOString(),
+        url: 'https://discord.com/channels/1/2/3',
+        content: UNFINISHED,
+      },
+    ]);
+  });
+
+  test('also listed in a dry run, and when the share was hidden in a spoiler', async () => {
+    const db = await memoryDb();
+    const spoilered = bad({ content: `||${UNFINISHED}||` });
+    const summary = await backfillHistory([spoilered], db, none, { apply: false });
+    expect(summary.invalidShares).toHaveLength(1);
+    expect(summary.invalidShares[0]!.reason).toContain('unfinished');
+  });
+
+  test('a message with no link is still listed', async () => {
+    const summary = await backfillHistory([bad({ url: undefined })], await memoryDb(), none, { apply: false });
+    expect(summary.invalidShares[0]!.url).toBeUndefined();
+  });
+
+  test('valid shares, chatter and bots are never listed', async () => {
+    const summary = await backfillHistory(
+      [msg('u1', NATURAL, 1000, 1), { ...msg('u2', NATURAL, 1000, 2), content: 'hello' }, msg('bot', NATURAL, 1000, 3, { authorIsBot: true })],
+      await memoryDb(), none, { apply: false },
+    );
+    expect(summary.invalidShares).toEqual([]);
+  });
+
+  test('formatInvalidShares shows the reason, who, when, the link and the share text', async () => {
+    const summary = await backfillHistory([bad()], await memoryDb(), none, { apply: false });
+    const text = formatInvalidShares(summary.invalidShares);
+    expect(text).toContain('Impossible shares (1)');
+    expect(text).toContain('bad-author');
+    expect(text).toContain('2026-01-01 00:04 UTC');
+    expect(text).toContain('Why: the puzzle looks unfinished');
+    expect(text).toContain('https://discord.com/channels/1/2/3');
+    expect(text).toContain('| 🟨🟨🟨🟨');
+  });
+
+  test('formatInvalidShares says nothing when there are none', () => {
+    expect(formatInvalidShares([])).toBe('');
+  });
+
+  test('formatInvalidShares caps a long list and says how many were left out', async () => {
+    const many = Array.from({ length: 25 }, (_, i) => bad({ authorId: `x${i}`, authorName: `author-${i}` }));
+    const summary = await backfillHistory(many, await memoryDb(), none, { apply: false });
+    const text = formatInvalidShares(summary.invalidShares, 10);
+    expect(text).toContain('Impossible shares (25)');
+    expect(text).toContain('author-9');
+    expect(text).not.toContain('author-10');
+    expect(text).toContain('and 15 more');
+  });
+
+  test('formatInvalidShares trims a very long message', async () => {
+    const long = bad({ content: `${UNFINISHED}\n${'blah '.repeat(200)}` });
+    const summary = await backfillHistory([long], await memoryDb(), none, { apply: false });
+    expect(formatInvalidShares(summary.invalidShares).length).toBeLessThan(900);
   });
 });

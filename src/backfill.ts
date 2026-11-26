@@ -11,6 +11,17 @@ export interface BackfillMessage {
   authorIsBot: boolean;
   content: string;
   createdAt: Date;
+  /** Link to the message, when known, so an odd one can be looked up in Discord. */
+  url?: string;
+}
+
+/** A message that looks like a share but cannot be a real result, with why. */
+export interface InvalidShare {
+  reason: string;
+  authorName: string;
+  postedAt: string;
+  url?: string;
+  content: string;
 }
 
 export interface BackfillSummary {
@@ -20,6 +31,8 @@ export interface BackfillSummary {
   bots: number;
   notShares: number;
   invalid: number;
+  /** The same messages the `invalid` count covers, with why each was rejected. */
+  invalidShares: InvalidShare[];
   /** Later shares by a player for a puzzle they had already shared in this history. */
   duplicates: number;
   /** Shares whose player and puzzle were already in the database; these are left untouched. */
@@ -54,6 +67,7 @@ export async function backfillHistory(
     bots: 0,
     notShares: 0,
     invalid: 0,
+    invalidShares: [],
     duplicates: 0,
     alreadyStored: 0,
     inserted: 0,
@@ -75,6 +89,7 @@ export async function backfillHistory(
     }
     if (parsed.status === 'invalid') {
       summary.invalid++;
+      summary.invalidShares.push({ reason: parsed.reason, authorName: m.authorName, postedAt: m.createdAt.toISOString(), url: m.url, content: m.content });
       continue;
     }
     const puzzle = byPuzzle.get(parsed.share.puzzleNumber) ?? new Map<string, Candidate>();
@@ -123,4 +138,21 @@ export async function backfillHistory(
 
   summary.players = players.size;
   return summary;
+}
+
+const SNIPPET_LIMIT = 300;
+
+/** A readable list of the impossible shares: who, when, why, a link, and the message text (trimmed). */
+export function formatInvalidShares(shares: InvalidShare[], limit = 20): string {
+  if (shares.length === 0) return '';
+  const lines = [`Impossible shares (${shares.length}): these look like Connections shares but cannot be a real result, so they were skipped.`];
+  shares.slice(0, limit).forEach((s, i) => {
+    const when = `${s.postedAt.slice(0, 16).replace('T', ' ')} UTC`;
+    const text = s.content.length > SNIPPET_LIMIT ? `${s.content.slice(0, SNIPPET_LIMIT)}…` : s.content;
+    lines.push(`${i + 1}. ${when}, ${s.authorName}`, `   Why: ${s.reason}`);
+    if (s.url) lines.push(`   ${s.url}`);
+    lines.push(...text.split('\n').map((line) => `   | ${line}`));
+  });
+  if (shares.length > limit) lines.push(`…and ${shares.length - limit} more.`);
+  return lines.join('\n');
 }

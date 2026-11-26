@@ -44,6 +44,7 @@ async function reactToRainbow(message: ChatMessage): Promise<void> {
 async function handleShare(message: ChatMessage, ctx: HandlerContext): Promise<void> {
   const parsed = parseShare(message.content)!;
   if (parsed.status === 'invalid') {
+    console.log(`Impossible share from ${message.author.username}: ${parsed.reason}`);
     await message.react('❌');
     return;
   }

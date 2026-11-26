@@ -86,7 +86,8 @@ It reads the channel history and loads each share with the player's real Discord
 export above hashes them, so it can't be used for this). It scores shares exactly like the live bot, sets each
 puzzle's win and tie flags, and announces nothing. The first share per player and puzzle counts, results already in
 the database are never overwritten, and it is safe to run again or while the bot is running. Set `IGNORED_USER_IDS`
-the same as on the bot.
+the same as on the bot. Any messages that look like shares but cannot be real results are listed at the end with the
+reason, who posted them, when, a link to the message and the text, so you can look each one up in Discord.
 
 ## Choosing a scoring model
 

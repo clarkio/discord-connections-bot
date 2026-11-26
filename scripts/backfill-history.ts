@@ -13,7 +13,7 @@
  * Unlike history:fetch, this keeps real Discord ids and names, because the database needs them.
  */
 import { Client, GatewayIntentBits, type Message, type TextBasedChannel } from 'discord.js';
-import { backfillHistory, type BackfillMessage } from '../src/backfill';
+import { backfillHistory, formatInvalidShares, type BackfillMessage } from '../src/backfill';
 import { TursoDatabase } from '../src/db/turso';
 import { parseIgnoredUserIds } from '../src/handler';
 
@@ -39,7 +39,7 @@ async function readAll(channel: TextBasedChannel): Promise<BackfillMessage[]> {
     const page = await channel.messages.fetch({ limit: 100, ...(before ? { before } : {}) });
     if (page.size === 0) break;
     for (const m of page.values() as Iterable<Message>) {
-      all.push({ authorId: m.author.id, authorName: m.author.username, authorIsBot: m.author.bot, content: m.content, createdAt: m.createdAt });
+      all.push({ authorId: m.author.id, authorName: m.author.username, authorIsBot: m.author.bot, content: m.content, createdAt: m.createdAt, url: m.url });
     }
     before = page.last()!.id;
     console.log(`Read ${all.length} messages...`);
@@ -74,6 +74,8 @@ client.once('clientReady', async () => {
       puzzles: summary.puzzles,
       players: summary.players,
     });
+    const impossible = formatInvalidShares(summary.invalidShares);
+    if (impossible) console.log(`\n${impossible}\n`);
     if (!apply) console.log('Nothing was written. Re-run with --apply to load these results.');
   } catch (error) {
     console.error('Backfill failed:', error);

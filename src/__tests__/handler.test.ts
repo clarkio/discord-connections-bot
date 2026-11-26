@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { handleMessage, isTaggingEnabled, type HandlerContext } from '../handler';
 import { MISTAKE, NATURAL, RAINBOW, fakeMessage, memoryDb, shareText } from './support';
 
@@ -280,5 +280,22 @@ describe('spoilered shares', () => {
     const m = fakeMessage('||Connections\nPuzzle #1000\n🟨🟨🟨🟨||');
     await handleMessage(m, await ctx());
     expect(m.reactions).toEqual(['❌']);
+  });
+});
+
+describe('impossible shares are logged with the reason', () => {
+  test('the bot logs who posted it and why it was rejected', async () => {
+    const log = spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const m = fakeMessage('Connections\nPuzzle #1000\n🟨🟨🟨🟨\n🟩🟩🟩🟩', { name: 'bad-author' });
+      await handleMessage(m, await ctx());
+      expect(m.reactions).toEqual(['❌']);
+      const logged = log.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(logged).toContain('Impossible share');
+      expect(logged).toContain('bad-author');
+      expect(logged).toContain('the puzzle looks unfinished');
+    } finally {
+      log.mockRestore();
+    }
   });
 });
