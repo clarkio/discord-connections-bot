@@ -144,3 +144,30 @@ describe('parseShare: spoilered shares', () => {
     expect(parseShare('||||')).toBeNull();
   });
 });
+
+describe('parseShare: the reason a share is impossible', () => {
+  const reason = (rows: string[], header = 'Connections\nPuzzle #12') => {
+    const r = parseShare(`${header}\n${rows.join('\n')}`);
+    return r?.status === 'invalid' ? r.reason : undefined;
+  };
+
+  test('a header with no rows', () => {
+    expect(reason([])).toBe('the header is there but no rows of coloured squares follow it');
+  });
+  test('a row that is not four squares', () => {
+    expect(reason(['🟨🟨🟨', ...PERFECT])).toBe('a row does not have exactly four squares');
+  });
+  test('guesses after the fourth mistake', () => {
+    expect(reason(['🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟨'])).toBe('there are guesses after the fourth mistake, but the game ends at four');
+  });
+  test('the same group solved twice', () => {
+    expect(reason(['🟨🟨🟨🟨', '🟨🟨🟨🟨', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'])).toBe('the same colour group was solved twice');
+  });
+  test('all four groups solved despite four mistakes', () => {
+    expect(reason(['🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', ...PERFECT])).toBe('there are guesses after the fourth mistake, but the game ends at four');
+    expect(reason([...PERFECT.slice(0, 3), '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩', '🟨🟨🟨🟩'])).toBe('all four groups are solved but four mistakes were also made, which the game does not allow');
+  });
+  test('an unfinished puzzle', () => {
+    expect(reason(['🟨🟨🟨🟨', '🟩🟩🟩🟩'])).toBe('the puzzle looks unfinished: fewer than four groups solved and fewer than four mistakes made');
+  });
+});
