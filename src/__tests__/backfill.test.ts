@@ -204,3 +204,21 @@ describe('impossible shares in the backfill', () => {
     expect(formatInvalidShares(summary.invalidShares).length).toBeLessThan(900);
   });
 });
+
+describe('text around a share in the backfill', () => {
+  const SCREENSHOT = ['🟦🟪🟨🟩', '🟨🟨🟨🟨', '🟩🟦🟩🟩', '🟪🟪🟦🟪', '🟦🟩🟩🟩🌈'];
+
+  test('a share with an emoji after a row is imported, not reported as impossible', async () => {
+    const db = await memoryDb();
+    const m = { ...msg('u1', NATURAL, 1089, 1), content: `I lost today\n${shareText(SCREENSHOT, 1089)}` };
+    const summary = await backfillHistory([m], db, none, { apply: true });
+    expect(summary).toMatchObject({ inserted: 1, invalid: 0, invalidShares: [] });
+    expect(await flags(db, 1089)).toEqual({ u1: [-29.75, true, false] });
+  });
+
+  test('a share interrupted by text is reported with that reason', async () => {
+    const m = { ...msg('u1', NATURAL, 1089, 1), content: shareText(['🟨🟨🟨🟨', 'oops', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'], 1089) };
+    const summary = await backfillHistory([m], await memoryDb(), none, { apply: false });
+    expect(summary.invalidShares[0]!.reason).toBe('the rows of squares are interrupted by other text');
+  });
+});

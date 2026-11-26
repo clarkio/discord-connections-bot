@@ -299,3 +299,31 @@ describe('impossible shares are logged with the reason', () => {
     }
   });
 });
+
+describe('text around a share', () => {
+  const SCREENSHOT = ['🟦🟪🟨🟩', '🟨🟨🟨🟨', '🟩🟦🟩🟩', '🟪🟪🟦🟪', '🟦🟩🟩🟩🌈'];
+
+  test('a share with an emoji after a row is counted, scored and announced', async () => {
+    const c = await ctx();
+    const m = fakeMessage(`I lost today\n${shareText(SCREENSHOT, 1089)}`);
+    await handleMessage(m, c);
+    expect(m.reactions).toEqual(['✅', '🌈']); // the rainbow guess in the first row earns 🌈
+    expect(m.sent[0]).toContain('Current Winner for Connections #1089 with -29.75 points (solved 1/4, 4 mistakes)');
+    expect(await c.db.hasResult('u1', 1089)).toBe(true);
+  });
+
+  test('a malformed share gets ❌ and is not stored', async () => {
+    const c = await ctx();
+    const m = fakeMessage(shareText(['🟨🟨🟨🌈', ...NATURAL], 1089));
+    await handleMessage(m, c);
+    expect(m.reactions).toEqual(['❌']);
+    expect(m.sent).toEqual([]);
+    expect(await c.db.hasResult('u1', 1089)).toBe(false);
+  });
+
+  test('text in the middle of the rows gets ❌', async () => {
+    const m = fakeMessage(shareText(['🟨🟨🟨🟨', 'oops', '🟩🟩🟩🟩', '🟦🟦🟦🟦', '🟪🟪🟪🟪'], 1089));
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['❌']);
+  });
+});

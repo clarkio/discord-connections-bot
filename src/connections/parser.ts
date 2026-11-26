@@ -1,14 +1,19 @@
 import type { Color, Guess, ParseResult } from './types';
 
 const SQUARES: Record<string, Color> = { '🟨': 'Y', '🟩': 'G', '🟦': 'B', '🟪': 'P' };
-const HEADER = /Connections\s*\r?\n\s*Puzzle\s*#\s*([\d,]+)/i;
+// "Connections" on one line, "Puzzle #N" on the next; anything else on those two lines is ignored.
+const HEADER = /Connections[^\n]*\n\s*Puzzle\s*#\s*([\d,]+)[^\n]*/i;
 const MAX_MISTAKES = 4;
 const CATEGORY_COUNT = 4;
 
-function toSquares(line: string): string[] | null {
-  const chars = Array.from(line.trim());
-  if (chars.length === 0) return null;
-  return chars.every((c) => c in SQUARES) ? chars : null;
+/** The colour squares a line starts with. Anything after them on the line is ignored. */
+function leadingSquares(line: string): string[] {
+  const squares: string[] = [];
+  for (const char of line.trimStart()) {
+    if (!(char in SQUARES)) break;
+    squares.push(char);
+  }
+  return squares;
 }
 
 /**
@@ -17,7 +22,8 @@ function toSquares(line: string): string[] | null {
  * Returns null when the message does not look like a share at all, so the
  * caller can ignore it. Returns `invalid` when it looks like a share but the
  * result is impossible, so the caller can react with a failure marker.
- * Discord spoiler markers (`||`) around any part of the share are ignored.
+ * Discord spoiler markers (`||`) around any part of the share are ignored, and so is any text before the
+ * share, after the results, or after the four squares of a row.
  */
 export function parseShare(raw: string): ParseResult | null {
   // A share hidden with Discord's spoiler feature arrives wrapped in `||`; the markers are not part of it.
@@ -26,12 +32,22 @@ export function parseShare(raw: string): ParseResult | null {
   if (!header) return null;
 
   const puzzleNumber = parseInt(header[1]!.replace(/,/g, ''), 10);
-  const rows = text
-    .slice(header.index + header[0].length)
-    .split(/\r?\n/)
-    .map(toSquares)
-    .filter((r): r is string[] => r !== null);
 
+  // The results are the lines that start with colour squares, straight after the Puzzle line (blank lines
+  // before the first row are fine). They end at the first line that does not start with a square; whatever
+  // follows is ignored. Anything wrong inside them is reported, never silently skipped.
+  const lines = text.slice(header.index + header[0].length).split(/\r?\n/).slice(1);
+  let i = 0;
+  while (i < lines.length && lines[i]!.trim() === '') i++;
+  const rows: string[][] = [];
+  for (; i < lines.length; i++) {
+    const squares = leadingSquares(lines[i]!);
+    if (squares.length === 0) break;
+    rows.push(squares);
+  }
+  if (lines.slice(i).some((line) => leadingSquares(line).length > 0)) {
+    return { status: 'invalid', reason: 'the rows of squares are interrupted by other text' };
+  }
   if (rows.length === 0) return { status: 'invalid', reason: 'the header is there but no rows of coloured squares follow it' };
 
   const guesses: Guess[] = [];
