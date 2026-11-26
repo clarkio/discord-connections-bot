@@ -182,6 +182,7 @@ export class TursoDatabase implements ConnectionsDatabase {
   async getPublicLeaderboard(): Promise<LeaderboardRow[]> {
     const rows = await this.db
       .select({
+        discordId: playersTable.discordId,
         discordName: playersTable.discordName,
         games: sql<number>`count(*)`,
         totalScore: sql<number>`sum(${scoresTable.dailyScore})`,
@@ -194,6 +195,7 @@ export class TursoDatabase implements ConnectionsDatabase {
       .groupBy(playersTable.discordId)
       .orderBy(desc(sql`sum(${scoresTable.dailyScore})`));
     return rows.map((r) => ({
+      discordId: r.discordId,
       discordName: r.discordName,
       games: Number(r.games),
       totalScore: Number(r.totalScore),

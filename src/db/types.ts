@@ -37,6 +37,7 @@ export interface Outcome {
 }
 
 export interface LeaderboardRow {
+  discordId: string;
   discordName: string;
   games: number;
   totalScore: number;

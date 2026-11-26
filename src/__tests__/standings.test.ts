@@ -171,7 +171,9 @@ describe('!standings all', () => {
     await post(db, 'a', 'alice', [MISTAKE, ...NATURAL], 1001);
     await post(db, 'b', 'bob', NATURAL, 1001);
     await optIn(db, 'a', 'b', 'c');
-    const [text] = await run(db, ['all']);
+    const m = fakeMessage('!standings all', { id: 'a', name: 'alice' }); // an opted-in player asking
+    await standingsCommand.execute(m, ['all'], { db, ignoredIds: new Set() });
+    const [text] = m.sent;
     expect(text).toBe(
       [
         '**All-time Connections standings** (3 players, ranked by total points)',
