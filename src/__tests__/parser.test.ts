@@ -98,3 +98,49 @@ describe('parseShare: shares that look real but cannot be', () => {
     expect(parseShare(share(rows))).toMatchObject({ status: 'invalid' });
   });
 });
+
+describe('parseShare: spoilered shares', () => {
+  const plain = share(PERFECT);
+  const expectSameAsPlain = (text: string) => {
+    const parsed = parseShare(text);
+    expect(parsed).toEqual(parseShare(plain));
+    expect(parsed?.status).toBe('ok');
+  };
+
+  test('the whole share inside one spoiler', () => {
+    expectSameAsPlain(`||${plain}||`);
+  });
+
+  test('chatter outside the spoiler is fine', () => {
+    expectSameAsPlain(`I lost today\n||${plain}||`);
+    expectSameAsPlain(`||${plain}||\nHaha so used to marking as spoiler for wordle`);
+  });
+
+  test('every line wrapped in its own spoiler', () => {
+    expectSameAsPlain(plain.split('\n').map((line) => `||${line}||`).join('\n'));
+  });
+
+  test('the header and the rows spoilered separately', () => {
+    expectSameAsPlain(`||Connections||\n||Puzzle #1,234||\n||${PERFECT.join('\n')}||`);
+  });
+
+  test('spaces just inside the markers', () => {
+    expectSameAsPlain(`|| ${plain} ||`);
+  });
+
+  test('a failed game hidden in a spoiler keeps its mistakes and solved groups', () => {
+    const failed = share(['🟨🟨🟨🟨', '🟩🟩🟦🟦', '🟩🟩🟪🟪', '🟦🟦🟩🟩', '🟪🟦🟪🟦']);
+    const parsed = parseShare(`||${failed}||`);
+    expect(parsed).toEqual(parseShare(failed));
+    expect(parsed?.status === 'ok' && parsed.share.failed).toBe(true);
+  });
+
+  test('an impossible share is still invalid when spoilered', () => {
+    expect(parseShare('||Connections\nPuzzle #12\n🟨🟨🟨🟨||')).toMatchObject({ status: 'invalid' });
+  });
+
+  test('a spoiler that is not a share is still ignored', () => {
+    expect(parseShare('||the butler did it||')).toBeNull();
+    expect(parseShare('||||')).toBeNull();
+  });
+});

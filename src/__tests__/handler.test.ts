@@ -249,3 +249,36 @@ describe('one message per counted share', () => {
     expect(await c.db.hasResult('u1', 1000)).toBe(true);
   });
 });
+
+describe('spoilered shares', () => {
+  test('a share hidden in a spoiler is stored, confirmed and announced like any other', async () => {
+    const c = await ctx();
+    const m = fakeMessage(`I lost today\n||${shareText(NATURAL)}||`);
+    await handleMessage(m, c);
+    expect(m.reactions).toEqual(['✅']);
+    expect(m.sent).toHaveLength(1);
+    expect(m.sent[0]).toMatch(/^Current Winner for Connections #1000 with 45 points/);
+    expect(await c.db.hasResult('u1', 1000)).toBe(true);
+  });
+
+  test('a spoilered rainbow guess still earns the 🌈', async () => {
+    const m = fakeMessage(`||${shareText([RAINBOW, ...NATURAL])}||`);
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['✅', '🌈']);
+  });
+
+  test('a spoilered duplicate is ignored like any duplicate', async () => {
+    const c = await ctx();
+    await handleMessage(fakeMessage(shareText(NATURAL)), c);
+    const again = fakeMessage(`||${shareText(NATURAL)}||`);
+    await handleMessage(again, c);
+    expect(again.reactions).toEqual([]);
+    expect(again.sent).toEqual([]);
+  });
+
+  test('an impossible spoilered share gets ❌', async () => {
+    const m = fakeMessage('||Connections\nPuzzle #1000\n🟨🟨🟨🟨||');
+    await handleMessage(m, await ctx());
+    expect(m.reactions).toEqual(['❌']);
+  });
+});
