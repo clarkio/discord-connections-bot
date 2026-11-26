@@ -114,7 +114,7 @@ describe('public leaderboard data respects opt-in', () => {
 
     await db.setOptedIn('u1', true);
     expect(await db.getPublicLeaderboard()).toEqual([
-      { discordName: 'alice', games: 2, totalScore: 24, averageScore: 12, wins: 1, ties: 1 },
+      { discordId: 'u1', discordName: 'alice', games: 2, totalScore: 24, averageScore: 12, wins: 1, ties: 1 },
     ]);
   });
 });
@@ -167,5 +167,32 @@ describe('for rescoring', () => {
     expect((await db.getPuzzleEntries(1001)).map((e) => e.dailyScore)).toEqual([9, 9]);
     expect((await db.getPuzzleEntries(1000)).find((e) => e.discordId === 'u1')!.isWin).toBe(true);
     await db.setDailyScores(1000, []); // nothing to do is fine
+  });
+});
+
+describe('all-time standings data', () => {
+  test('getAllTimeStandings includes every player, opted in or not, best total first', async () => {
+    const db = await memoryDb();
+    for (const [id, name] of [['u1', 'alice'], ['u2', 'bob'], ['u3', 'cara']] as const) await db.upsertPlayer(id, name);
+    await db.saveResult(result('u1', 1), 14);
+    await db.saveResult(result('u1', 2), 10);
+    await db.saveResult(result('u2', 1), 30);
+    await db.saveResult(result('u3', 1), 5);
+    await db.setOutcomes(1, [{ discordId: 'u2', isWin: true, isTie: false }]);
+    await db.setOptedIn('u1', true);
+
+    expect(await db.getAllTimeStandings()).toEqual([
+      { discordId: 'u2', discordName: 'bob', games: 1, totalScore: 30, averageScore: 30, wins: 1, ties: 0 },
+      { discordId: 'u1', discordName: 'alice', games: 2, totalScore: 24, averageScore: 12, wins: 0, ties: 0 },
+      { discordId: 'u3', discordName: 'cara', games: 1, totalScore: 5, averageScore: 5, wins: 0, ties: 0 },
+    ]);
+    // the public leaderboard data is still only the opted-in players
+    expect((await db.getPublicLeaderboard()).map((r) => r.discordId)).toEqual(['u1']);
+  });
+
+  test('a player with no results is not listed', async () => {
+    const db = await memoryDb();
+    await db.upsertPlayer('u1', 'alice');
+    expect(await db.getAllTimeStandings()).toEqual([]);
   });
 });

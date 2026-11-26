@@ -37,6 +37,7 @@ export interface Outcome {
 }
 
 export interface LeaderboardRow {
+  discordId: string;
   discordName: string;
   games: number;
   totalScore: number;
@@ -61,6 +62,8 @@ export interface ConnectionsDatabase {
   getAllPuzzleNumbers(): Promise<number[]>;
   /** Replace the stored daily score of the named players for one puzzle. Touches nothing else. */
   setDailyScores(puzzleNumber: number, scores: { discordId: string; dailyScore: number }[]): Promise<void>;
+  /** Every player with at least one result, opted in or not, best total first. For use inside Discord. */
+  getAllTimeStandings(): Promise<LeaderboardRow[]>;
   /** Public data: opted-in players only. */
   getPublicLeaderboard(): Promise<LeaderboardRow[]>;
 }

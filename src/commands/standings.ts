@@ -3,12 +3,16 @@ import { toShare } from '../processor';
 import { compareKeys } from '../scoring/models';
 import { PRODUCTION_CONFIG, PRODUCTION_MODEL } from '../scoring/production';
 import { determineWinners } from '../scoring/winners';
-import type { Command } from './types';
+import type { ConnectionsDatabase } from '../db/types';
+import type { Command, CommandMessage } from './types';
 
 /** Discord rejects messages over 2000 characters; stay a little under. */
 const MESSAGE_LIMIT = 1900;
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** Round away floating-point noise from sums of quarter points. */
+const tidy = (n: number) => Number(n.toFixed(2));
 
 /** Names come from Discord and are shown as plain text, so neutralise markdown characters. */
 const escapeMarkdown = (name: string) => name.replace(/([\\_*~`|>])/g, '\\$1');
@@ -29,13 +33,40 @@ function chunk(lines: string[]): string[] {
   return messages;
 }
 
+/**
+ * All-time standings, ranked by total points. It runs inside Discord, not on a public site, so every
+ * player is included whether or not they opted in; ignored players never compete and are left out.
+ */
+async function allTimeStandings(message: CommandMessage, db: ConnectionsDatabase, ignoredIds: Set<string>): Promise<void> {
+  const rows = (await db.getAllTimeStandings())
+    .filter((r) => !ignoredIds.has(r.discordId))
+    .sort((a, b) => b.totalScore - a.totalScore || b.averageScore - a.averageScore || a.discordName.localeCompare(b.discordName));
+  if (rows.length === 0) {
+    await message.channel.send('No Connections results yet.');
+    return;
+  }
+
+  let rank = 0;
+  const lines = rows.map((r, i) => {
+    if (i === 0 || r.totalScore !== rows[i - 1]!.totalScore) rank = i + 1;
+    return `${rank}. ${rank === 1 ? '🏆 ' : ''}${escapeMarkdown(r.discordName)} — ${tidy(r.totalScore)} points · ${plural(r.games, 'puzzle')} · ${tidy(r.averageScore)} average · ${plural(r.wins, 'win')} · ${plural(r.ties, 'tie')}`;
+  });
+
+  const header = `**All-time Connections standings** (${plural(rows.length, 'player')}, ranked by total points)`;
+  for (const text of chunk([header, ...lines])) await message.channel.send(text);
+}
+
 export const standingsCommand: Command = {
   name: 'standings',
-  description: "Compare everyone's results for a puzzle: !standings [puzzle number]",
+  description: "Compare everyone's results for a puzzle, or the all-time standings: !standings [puzzle number | all]",
   async execute(message, args, { db, ignoredIds }) {
     const arg = args[0];
+    if (arg?.toLowerCase() === 'all') {
+      await allTimeStandings(message, db, ignoredIds);
+      return;
+    }
     if (arg !== undefined && !/^\d+$/.test(arg)) {
-      await message.channel.send('Usage: !standings [puzzle number]');
+      await message.channel.send('Usage: !standings [puzzle number | all]');
       return;
     }
 

@@ -179,9 +179,10 @@ export class TursoDatabase implements ConnectionsDatabase {
     return rows.map((r) => this.toEntry(r));
   }
 
-  async getPublicLeaderboard(): Promise<LeaderboardRow[]> {
+  private async totalsPerPlayer(optedInOnly: boolean): Promise<LeaderboardRow[]> {
     const rows = await this.db
       .select({
+        discordId: playersTable.discordId,
         discordName: playersTable.discordName,
         games: sql<number>`count(*)`,
         totalScore: sql<number>`sum(${scoresTable.dailyScore})`,
@@ -190,10 +191,11 @@ export class TursoDatabase implements ConnectionsDatabase {
       })
       .from(playersTable)
       .innerJoin(scoresTable, eq(scoresTable.discordId, playersTable.discordId))
-      .where(eq(playersTable.isOptedIn, 1))
+      .where(optedInOnly ? eq(playersTable.isOptedIn, 1) : undefined)
       .groupBy(playersTable.discordId)
       .orderBy(desc(sql`sum(${scoresTable.dailyScore})`));
     return rows.map((r) => ({
+      discordId: r.discordId,
       discordName: r.discordName,
       games: Number(r.games),
       totalScore: Number(r.totalScore),
@@ -201,5 +203,13 @@ export class TursoDatabase implements ConnectionsDatabase {
       wins: Number(r.wins),
       ties: Number(r.ties),
     }));
+  }
+
+  async getAllTimeStandings(): Promise<LeaderboardRow[]> {
+    return this.totalsPerPlayer(false);
+  }
+
+  async getPublicLeaderboard(): Promise<LeaderboardRow[]> {
+    return this.totalsPerPlayer(true);
   }
 }
