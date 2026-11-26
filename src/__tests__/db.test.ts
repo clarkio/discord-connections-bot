@@ -114,7 +114,7 @@ describe('public leaderboard data respects opt-in', () => {
 
     await db.setOptedIn('u1', true);
     expect(await db.getPublicLeaderboard()).toEqual([
-      { discordName: 'alice', games: 2, totalScore: 24, averageScore: 12, wins: 1, ties: 1 },
+      { discordId: 'u1', discordName: 'alice', games: 2, totalScore: 24, averageScore: 12, wins: 1, ties: 1 },
     ]);
   });
 });

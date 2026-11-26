@@ -133,7 +133,7 @@ describe('!standings', () => {
   });
 
   test('a puzzle number that is not a number gets the usage line', async () => {
-    expect(await run(await memoryDb(), ['abc'])).toEqual(['Usage: !standings [puzzle number]']);
+    expect(await run(await memoryDb(), ['abc'])).toEqual(['Usage: !standings [puzzle number | all]']);
   });
 
   test('works through the message handler, passing along the ignore list', async () => {
@@ -143,5 +143,123 @@ describe('!standings', () => {
     expect(m.sent).toHaveLength(1);
     expect(m.sent[0]).toContain('(3 players)');
     expect(m.sent[0]).not.toContain('dan');
+  });
+});
+
+describe('!standings all', () => {
+  async function seasonal() {
+    const db = await memoryDb();
+    // 1000: alice 45 and cara 45 tie, bob 30.  1001: bob 45 wins, alice 30.  dan only plays 1000 with a great score.
+    await post(db, 'a', 'alice', NATURAL, 1000);
+    await post(db, 'b', 'bob', [MISTAKE, ...NATURAL], 1000);
+    await post(db, 'c', 'cara', NATURAL, 1000);
+    await post(db, 'd', 'dan', [P, B, G, Y], 1000);
+    await post(db, 'a', 'alice', [MISTAKE, ...NATURAL], 1001);
+    await post(db, 'b', 'bob', NATURAL, 1001);
+    return db;
+  }
+  const optIn = async (db: Db, ...ids: string[]) => {
+    for (const id of ids) await db.setOptedIn(id, true);
+  };
+
+  test('lists the opted-in players ranked by total points, with puzzles, average, wins and ties', async () => {
+    const db = await memoryDb();
+    // 1000: alice and cara tie on 45, bob 30. 1001: bob 45 wins, alice 30.
+    await post(db, 'a', 'alice', NATURAL, 1000);
+    await post(db, 'b', 'bob', [MISTAKE, ...NATURAL], 1000);
+    await post(db, 'c', 'cara', NATURAL, 1000);
+    await post(db, 'a', 'alice', [MISTAKE, ...NATURAL], 1001);
+    await post(db, 'b', 'bob', NATURAL, 1001);
+    await optIn(db, 'a', 'b', 'c');
+    const [text] = await run(db, ['all']);
+    expect(text).toBe(
+      [
+        '**All-time Connections standings** (3 players, ranked by total points)',
+        '1. 🏆 alice — 75 points · 2 puzzles · 37.5 average · 0 wins · 1 tie',
+        '1. 🏆 bob — 75 points · 2 puzzles · 37.5 average · 1 win · 0 ties',
+        '3. cara — 45 points · 1 puzzle · 45 average · 0 wins · 1 tie',
+        'Only players who used !optin are shown.',
+      ].join('\n'),
+    );
+  });
+
+  test('players who have not opted in are left out, however well they scored', async () => {
+    const db = await seasonal();
+    await optIn(db, 'a', 'b', 'c');
+    const [text] = await run(db, ['all']);
+    expect(text).not.toContain('dan');
+    expect(text).toContain('(3 players');
+  });
+
+  test('ignored players are left out even if they opted in', async () => {
+    const db = await seasonal();
+    await optIn(db, 'a', 'b', 'c', 'd');
+    const [text] = await run(db, ['all'], new Set(['d']));
+    expect(text).not.toContain('dan');
+    expect(text).toContain('(3 players');
+  });
+
+  test('says how to join when nobody has opted in', async () => {
+    const db = await seasonal();
+    expect(await run(db, ['all'])).toEqual(['No players have opted in yet. Use !optin to appear in the all-time standings.']);
+  });
+
+  test('says so when nothing has been shared at all', async () => {
+    expect(await run(await memoryDb(), ['all'])).toEqual(['No players have opted in yet. Use !optin to appear in the all-time standings.']);
+  });
+
+  test('is not case sensitive', async () => {
+    const db = await seasonal();
+    await optIn(db, 'a');
+    for (const word of ['ALL', 'All', 'aLl']) expect((await run(db, [word]))[0]).toContain('**All-time Connections standings**');
+  });
+
+  test('tells a player who has not opted in how to join, and nobody else', async () => {
+    const db = await seasonal();
+    await optIn(db, 'a', 'b', 'c');
+    const notIn = fakeMessage('!standings all', { id: 'd', name: 'dan' });
+    await standingsCommand.execute(notIn, ['all'], { db, ignoredIds: new Set() });
+    expect(notIn.sent.join('\n')).toContain('You are not in these standings yet: use !optin to join.');
+
+    const isIn = fakeMessage('!standings all', { id: 'a', name: 'alice' });
+    await standingsCommand.execute(isIn, ['all'], { db, ignoredIds: new Set() });
+    expect(isIn.sent.join('\n')).not.toContain('You are not in these standings');
+
+    const stranger = fakeMessage('!standings all', { id: 'new', name: 'newbie' });
+    await standingsCommand.execute(stranger, ['all'], { db, ignoredIds: new Set() });
+    expect(stranger.sent.join('\n')).toContain('use !optin to join');
+  });
+
+  test('never tags anyone, and escapes markdown in names', async () => {
+    const db = await memoryDb();
+    await post(db, 'a', 'a_b*c', NATURAL, 1000);
+    await optIn(db, 'a');
+    const [text] = await run(db, ['all']);
+    expect(text).not.toContain('<@');
+    expect(text).toContain('a\\_b\\*c');
+  });
+
+  test('a long list is split across messages, none over 2000 characters, nobody lost', async () => {
+    const db = await memoryDb();
+    for (let i = 0; i < 60; i++) {
+      await post(db, `u${i}`, `player-number-${i}`, NATURAL, 1000);
+      await db.setOptedIn(`u${i}`, true);
+    }
+    const sent = await run(db, ['all']);
+    expect(sent.length).toBeGreaterThan(1);
+    for (const text of sent) expect(text.length).toBeLessThanOrEqual(2000);
+    const joined = sent.join('\n');
+    for (let i = 0; i < 60; i++) expect(joined).toContain(`player-number-${i} `);
+    expect(sent[0]).toContain('(60 players');
+    expect(sent.at(-1)).toContain('Only players who used !optin are shown.');
+  });
+
+  test('works through the message handler, passing along the ignore list', async () => {
+    const db = await seasonal();
+    await optIn(db, 'a', 'b', 'c');
+    const m = fakeMessage('!standings all', { id: 'a', name: 'alice' });
+    await handleMessage(m, { db, ignoredIds: new Set(['c']), taggingEnabled: true, targetChannelId: 'chan' });
+    expect(m.sent.join('\n')).toContain('(2 players');
+    expect(m.sent.join('\n')).not.toContain('cara');
   });
 });
