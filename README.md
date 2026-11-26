@@ -36,7 +36,7 @@ currently winning that puzzle whenever the sharer is among the winners (a tie is
   (53.5), a completely failed game with no rainbow guess the lowest (−40). The score order is exactly the ranking,
   which `src/__tests__/outcome-model.test.ts` checks over every possible result.
 - Commands: `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
-  data, results are recorded either way), `!results [puzzle]` (your result plus lifetime totals), `!scoring` (how the scoring works, with a worked example), `!standings [puzzle]` (everyone's results for a puzzle,
+  data, results are recorded either way), `!results [puzzle | first]` (your result plus lifetime totals; `first` finds your first puzzle for you), `!scoring` (how the scoring works, with a worked example), `!standings [puzzle]` (everyone's results for a puzzle,
   ranked, with scores and solve orders; the latest puzzle if no number is given).
 - `IGNORED_USER_IDS` players are recorded but never count toward winners or ties. `USER_TAGGING_ENABLED=true`
   (any letter case) mentions winners instead of printing names; if it is unset or anything else, names are printed.
