@@ -41,7 +41,7 @@ currently winning that puzzle whenever the sharer is among the winners (a tie is
   solved before an easier one. The perfect reverse (purple, blue, green, yellow) is the highest possible score
   (53.5), a completely failed game with no rainbow guess the lowest (−40). The score order is exactly the ranking,
   which `src/__tests__/outcome-model.test.ts` checks over every possible result.
-- Commands: `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
+- Commands (`!help` or `!commands` lists them in Discord, built from the commands themselves): `!optin`, `!optout` (players are opted out by default; opt-in only controls public leaderboard
   data, results are recorded either way), `!results [puzzle | first]` (your result plus lifetime totals; `first` finds your first puzzle for you), `!scoring` (how the scoring works, with a worked example), `!standings [puzzle | all]` (everyone's results for a puzzle,
   ranked, with scores and solve orders; the latest puzzle if no number is given; `all` is the all-time standings by
   total points, for every player, opted in or not).

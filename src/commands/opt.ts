@@ -4,9 +4,10 @@ function optCommand(name: 'optin' | 'optout', value: boolean): Command {
   const verb = value ? 'opted in' : 'opted out';
   return {
     name,
+    usage: `!${name}`,
     description: value
-      ? 'Opt in to your stats showing in the public leaderboard data'
-      : 'Opt out of your stats showing in the public leaderboard data',
+      ? 'Opt in to appear in public leaderboard data. Your results are recorded either way.'
+      : 'Opt out of public leaderboard data. Your results are still recorded, and you can still see them with !results.',
     async execute(message, _args, { db }) {
       await db.upsertPlayer(message.author.id, message.author.username);
       const changed = await db.setOptedIn(message.author.id, value);
